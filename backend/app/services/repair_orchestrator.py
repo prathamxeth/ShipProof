@@ -146,6 +146,7 @@ class RepairOrchestrator:
                 attempt_number=attempt_num,
                 failing_step_index=packet.failed_step,
                 status="CREATED",
+                diagnosis="Pending analysis",
                 git_commit_before=git_before,
                 repair_packet_json=packet.model_dump_json()
             )
