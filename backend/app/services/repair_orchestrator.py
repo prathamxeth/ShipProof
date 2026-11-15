@@ -175,17 +175,16 @@ class RepairOrchestrator:
         auto_approve: bool = False
     ):
         try:
-            # 1. State: ANALYZING
+            # 1. State: JOB_PUBLISHED
             await self.transition(
                 repair_id,
-                "ANALYZING",
-                "Antigravity Agent is investigating failure evidence and DOM root cause..."
+                "JOB_PUBLISHED",
+                f"Repair packet published to .shipproof/repairs/{repair_id}/ for Antigravity IDE Agent."
             )
 
-            # Generate diagnosis via AgentService
+            # Generate diagnosis from failure triage
             proposal: AgentProposal = await self.agent_service.generate_diagnosis(packet)
 
-            # 2. State: PROPOSED
             async with AsyncSessionLocal() as session:
                 await session.execute(
                     update(RepairRecordEntity)
@@ -197,21 +196,18 @@ class RepairOrchestrator:
                 )
                 await session.commit()
 
+            # 2. State: AWAITING_AGENT
             await self.transition(
                 repair_id,
-                "PROPOSED",
-                "Agent formulated diagnosis and proposed repair strategy.",
+                "AWAITING_AGENT",
+                "Awaiting Antigravity IDE Agent to inspect failure evidence and apply source code modifications in workspace.",
                 payload={"diagnosis": proposal.diagnosis, "suggested_files": proposal.suggested_files}
             )
 
-            # 3. State: AWAITING_APPROVAL
-            await self.transition(
-                repair_id,
-                "AWAITING_APPROVAL",
-                "Ready for code application. Awaiting review/approval in ShipProof Repair Studio."
-            )
+            # Check if changes are already staged/present
+            changes = await self.detect_workspace_changes(repair_id)
 
-            if auto_approve:
+            if auto_approve and changes.get("modified"):
                 await self.apply_and_retest(repair_id, rationale="Auto-approved by policy")
 
         except asyncio.CancelledError:
@@ -219,6 +215,45 @@ class RepairOrchestrator:
         except Exception as e:
             logger.exception(f"Error in repair analysis for {repair_id}: {e}")
             await self.transition(repair_id, "FAILED", f"Error during analysis: {str(e)}")
+
+    async def detect_workspace_changes(self, repair_id: str) -> Dict[str, Any]:
+        """
+        Inspects the workspace to detect modifications applied by the Antigravity IDE Agent.
+        Transitions the state machine: AWAITING_AGENT -> AGENT_RESPONSE_RECEIVED -> AWAITING_APPROVAL.
+        """
+        target_repo = settings.WORKSPACE_DIR
+        modified_files = GitService.get_modified_files(target_repo)
+        current_diff = GitService.capture_diff(target_repo)
+
+        async with AsyncSessionLocal() as session:
+            res = await session.execute(
+                select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id)
+            )
+            repair = res.scalar_one_or_none()
+            if not repair:
+                raise ValueError(f"Repair {repair_id} not found")
+
+            if modified_files:
+                repair.files_modified = json.dumps(modified_files)
+                repair.patch_diff = current_diff
+                repair.git_commit_after = GitService.get_current_sha(target_repo)
+                await session.commit()
+
+                await self.transition(
+                    repair_id,
+                    "AGENT_RESPONSE_RECEIVED",
+                    f"Antigravity IDE Agent modifications detected: {len(modified_files)} file(s) modified in workspace.",
+                    payload={"modified_files": modified_files}
+                )
+                await self.transition(
+                    repair_id,
+                    "AWAITING_APPROVAL",
+                    "Changes ready for review in ShipProof Repair Studio. Awaiting user approval to run Kane re-test.",
+                    payload={"modified_files": modified_files}
+                )
+                return {"modified": True, "files": modified_files, "diff": current_diff}
+            else:
+                return {"modified": False, "files": [], "diff": ""}
 
     async def apply_and_retest(self, repair_id: str, rationale: str = "Approved"):
         """

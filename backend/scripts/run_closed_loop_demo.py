@@ -156,16 +156,16 @@ async def main():
     repair_id = repair.id
     print(f"Created Repair Session ID: {repair_id}")
 
-    # Wait for analysis to reach AWAITING_APPROVAL
+    # Wait for session initialization to reach AWAITING_AGENT or AWAITING_APPROVAL
     for _ in range(20):
         async with AsyncSessionLocal() as session:
             res = await session.execute(
                 select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id)
             )
             repair = res.scalar_one()
-            if repair.status == "AWAITING_APPROVAL":
+            if repair.status in ("AWAITING_AGENT", "AWAITING_APPROVAL"):
                 break
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
 
     # Inspect repair state
     async with AsyncSessionLocal() as session:
@@ -177,6 +177,7 @@ async def main():
         repair = res.scalar_one()
 
     print(f"Repair Status:             {repair.status}")
+    print(f"Execution Mode:            {repair.execution_mode}")
     print(f"Git Commit Before:         {repair.git_commit_before}")
     print(f"Diagnosis Formulated:      {repair.diagnosis}")
     
@@ -185,10 +186,10 @@ async def main():
     print(f"Published Job Directory:   {settings.WORKSPACE_DIR / '.shipproof' / 'repairs' / repair_id}")
 
     # -------------------------------------------------------------------------
-    # PHASE 4: Antigravity Code Repair
+    # PHASE 4: Antigravity IDE Agent Code Repair
     # -------------------------------------------------------------------------
-    await step_header(4, "Applying Antigravity Code Repair to Target Application")
-    print("Modifying sample store templates to fix the checkout button defect...")
+    await step_header(4, "Antigravity IDE Agent Applies Source Code Repair")
+    print("Inspecting published repair prompt and patching cart.html...")
 
     # Read cart template
     with open(CART_TEMPLATE, "r", encoding="utf-8") as f:
@@ -218,6 +219,10 @@ async def main():
         json.dump(store_cfg, f, indent=2)
 
     print("✓ Source code patch applied to cart.html and config.json.")
+
+    # Detect workspace changes via orchestrator (AWAITING_AGENT -> AGENT_RESPONSE_RECEIVED -> AWAITING_APPROVAL)
+    change_info = await repair_orchestrator.detect_workspace_changes(repair_id)
+    print(f"✓ Detected workspace modifications: {change_info.get('files', [])}")
 
     # Inspect Git Diff via GitService
     diff = GitService.capture_diff(settings.WORKSPACE_DIR)

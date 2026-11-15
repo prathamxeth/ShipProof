@@ -121,6 +121,16 @@ async def get_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
         events=events_resp
     )
 
+@router.post("/{repair_id}/check-changes", summary="Detect workspace changes applied by Antigravity IDE agent")
+async def check_repair_changes(repair_id: str, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id))
+    repair = res.scalar_one_or_none()
+    if not repair:
+        raise ResourceNotFoundException("RepairRecord", repair_id)
+
+    result = await repair_orchestrator.detect_workspace_changes(repair_id)
+    return result
+
 @router.post("/{repair_id}/approve", response_model=RepairApproveResponse, summary="Approve and apply proposed repair")
 async def approve_repair(repair_id: str, payload: RepairApproveRequest = None, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id))
@@ -128,7 +138,7 @@ async def approve_repair(repair_id: str, payload: RepairApproveRequest = None, d
     if not repair:
         raise ResourceNotFoundException("RepairRecord", repair_id)
 
-    if repair.status not in ("AWAITING_APPROVAL", "PROPOSED"):
+    if repair.status not in ("AWAITING_APPROVAL", "AGENT_RESPONSE_RECEIVED", "PROPOSED", "AWAITING_AGENT"):
         raise ShipProofException(f"Repair in status '{repair.status}' cannot be approved", status_code=400)
 
     rationale = payload.rationale if payload and payload.rationale else "Approved by user"

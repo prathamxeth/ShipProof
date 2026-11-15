@@ -114,8 +114,9 @@ class RepairRecordEntity(Base):
     attempt_number = Column(Integer, default=1, nullable=False)
     failing_step_index = Column(Integer, nullable=True)
     
-    # State machine: CREATED -> ANALYZING -> PROPOSED -> AWAITING_APPROVAL -> APPLYING -> VALIDATING -> RETESTING -> VERIFIED / UNRESOLVED / FAILED / CANCELLED
+    # State machine: CREATED -> JOB_PUBLISHED -> AWAITING_AGENT -> AGENT_RESPONSE_RECEIVED -> AWAITING_APPROVAL -> APPLYING -> VALIDATING -> RETESTING -> VERIFIED / UNRESOLVED / FAILED / CANCELLED
     status = Column(String(50), default="CREATED", nullable=False)
+    execution_mode = Column(String(50), default="ide_mediated", nullable=False)
     
     diagnosis = Column(Text, nullable=True)
     files_modified = Column(Text, nullable=True)  # JSON list

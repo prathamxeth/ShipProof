@@ -42,6 +42,7 @@ async def init_db() -> None:
             result_rep = await conn.execute(text("PRAGMA table_info(repair_records);"))
             existing_rep_cols = {row[1] for row in result_rep.fetchall()}
             new_rep_cols = {
+                "execution_mode": "VARCHAR(50) DEFAULT 'ide_mediated'",
                 "git_commit_before": "VARCHAR(64)",
                 "git_commit_after": "VARCHAR(64)",
                 "repair_packet_json": "TEXT",

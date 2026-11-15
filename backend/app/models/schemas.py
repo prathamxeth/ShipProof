@@ -79,6 +79,7 @@ class RepairPacketModel(BaseModel):
     project_dir: str
     relevant_files: List[str] = []
     git_commit_before: Optional[str] = None
+    execution_mode: str = "ide_mediated"
     created_at: str
 
 
@@ -107,6 +108,7 @@ class RepairSummaryResponse(BaseModel):
     run_id: str
     attempt_number: int
     status: str
+    execution_mode: str = "ide_mediated"
     diagnosis: Optional[str] = None
     git_commit_before: Optional[str] = None
     git_commit_after: Optional[str] = None

@@ -116,7 +116,7 @@ async def test_repair_lifecycle_and_approval_requirement(client: AsyncClient):
     detail_res = await client.get(f"/api/repairs/{repair_id}")
     assert detail_res.status_code == 200
     detail = detail_res.json()
-    assert detail["status"] in ("AWAITING_APPROVAL", "PROPOSED", "ANALYZING")
+    assert detail["status"] in ("AWAITING_APPROVAL", "AWAITING_AGENT", "JOB_PUBLISHED", "AGENT_RESPONSE_RECEIVED", "PROPOSED", "ANALYZING")
     assert detail["attempt_number"] == 1
 
 @pytest.mark.asyncio
