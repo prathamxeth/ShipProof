@@ -24,6 +24,11 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
     )
     passed_runs = passed_runs_q.scalar() or 0
 
+    verified_runs_q = await db.execute(
+        select(func.count()).select_from(VerificationRunEntity).where(VerificationRunEntity.status == "verified")
+    )
+    verified_runs = verified_runs_q.scalar() or 0
+
     failed_runs_q = await db.execute(
         select(func.count()).select_from(VerificationRunEntity).where(VerificationRunEntity.status == "failed")
     )
@@ -90,6 +95,7 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
         total_runs=total_runs,
         passed_runs=passed_runs,
         failed_runs=failed_runs,
+        verified_runs=verified_runs,
         running_runs=running_runs,
         cancelled_or_incomplete_runs=cancelled_runs,
         total_repairs=total_repairs,

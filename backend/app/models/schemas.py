@@ -232,6 +232,7 @@ class OverviewStatsResponse(BaseModel):
     total_runs: int = 0
     passed_runs: int = 0
     failed_runs: int = 0
+    verified_runs: int = 0
     running_runs: int = 0
     cancelled_or_incomplete_runs: int = 0
     total_repairs: int = 0

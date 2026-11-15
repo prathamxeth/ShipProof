@@ -257,3 +257,83 @@ async def test_retest_passed_marks_verified(client: AsyncClient):
         run_res = await client.get(f"/api/runs/{run_id}")
         assert run_res.json()["repaired"] is True
         assert run_res.json()["status"] == "verified"
+
+@pytest.mark.asyncio
+async def test_retest_failed_marks_unresolved_and_cannot_produce_verified(client: AsyncClient):
+    # Mock KaneService so retest fails
+    mock_events = [
+        NormalizedEvent(event_type="stream_start"),
+        NormalizedEvent(event_type="step", step_number=1, status="done", description="Navigated to cart"),
+        NormalizedEvent(event_type="step", step_number=2, status="failed", description="Checkout button still disabled"),
+        NormalizedEvent(event_type="run_end", status="failed", description="Order failed", raw_event={"status": "failed"})
+    ]
+
+    async def mock_run_kane_fail(*args, **kwargs):
+        cb = kwargs.get("event_callback")
+        if cb:
+            for ev in mock_events:
+                await cb(ev)
+        return KaneExecutionResult(
+            run_id=kwargs.get("run_id", "retest-fail"),
+            exit_code=1,
+            status="failed",
+            raw_stdout_path="/tmp/out",
+            raw_stderr_path="/tmp/err",
+            events=mock_events,
+            run_end_event=mock_events[-1],
+            error_message="Checkout button still disabled"
+        )
+
+    # 1. Create failed run
+    create_res = await client.post("/api/runs", json={
+        "title": "Closed Loop Failure Protection Test",
+        "objective": "Add to cart and checkout",
+        "target_url": "http://localhost:3005"
+    })
+    run_id = create_res.json()["id"]
+
+    from backend.app.core.database import AsyncSessionLocal
+    from backend.app.models.entities import VerificationRunEntity
+    from sqlalchemy import update
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(VerificationRunEntity)
+            .where(VerificationRunEntity.id == run_id)
+            .values(status="failed", failure_reason="Initial checkout failure")
+        )
+        await session.commit()
+
+    mock_proposal = AgentProposal(
+        repair_id=run_id,
+        diagnosis="Incomplete fix attempt",
+        rationale="Trying partial repair",
+        suggested_files=["templates/cart.html"]
+    )
+
+    with patch.object(KaneService, "run_kane", side_effect=mock_run_kane_fail), \
+         patch.object(AgentService, "generate_diagnosis", return_value=mock_proposal):
+        # 2. Create repair with auto_approve
+        rep_res = await client.post("/api/repairs", json={"run_id": run_id, "auto_approve": True})
+        repair_id = rep_res.json()["id"]
+
+        # Poll until terminal state
+        det = None
+        for _ in range(20):
+            await asyncio.sleep(0.2)
+            det_res = await client.get(f"/api/repairs/{repair_id}")
+            det = det_res.json()
+            if det["status"] in ("VERIFIED", "FAILED", "UNRESOLVED", "CANCELLED"):
+                break
+
+        # 3. Verify terminal status is UNRESOLVED (NEVER VERIFIED)
+        assert det is not None
+        assert det["status"] == "UNRESOLVED"
+        assert det["status"] != "VERIFIED"
+        assert det["retest_passed"] is False
+        assert det["retest_run_id"] is not None
+
+        # 4. Verify parent run status remains unverified and repaired is False
+        run_res = await client.get(f"/api/runs/{run_id}")
+        assert run_res.json()["repaired"] is False
+        assert run_res.json()["status"] != "verified"
