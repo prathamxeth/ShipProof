@@ -142,7 +142,7 @@ class RepairPacketService:
             lines.extend([
                 "### Failure Triage (from `failure.yaml`):",
                 "```yaml",
-                json.dumps(packet.failure_yaml, indent=2),
+                json.dumps(packet.failure_yaml, indent=2, default=str),
                 "```"
             ])
 
@@ -150,7 +150,7 @@ class RepairPacketService:
             lines.extend([
                 "### Browser Console Errors:",
                 "```json",
-                json.dumps(packet.console_errors[:5], indent=2),
+                json.dumps(packet.console_errors[:5], indent=2, default=str),
                 "```"
             ])
 
@@ -158,7 +158,7 @@ class RepairPacketService:
             lines.extend([
                 "### Network Failures (4xx / 5xx):",
                 "```json",
-                json.dumps(packet.network_errors[:5], indent=2),
+                json.dumps(packet.network_errors[:5], indent=2, default=str),
                 "```"
             ])
 

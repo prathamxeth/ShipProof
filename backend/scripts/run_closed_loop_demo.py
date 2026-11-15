@@ -63,52 +63,63 @@ async def main():
     target_url = "http://127.0.0.1:3005/product/1"
     objective = "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed."
 
-    # -------------------------------------------------------------------------
-    # PHASE 1: Enable Defect in Sample Store
-    # -------------------------------------------------------------------------
-    await step_header(1, "Injecting Intentional Defect into Target Application")
-    print(f"Target Store Directory: {SAMPLE_STORE_DIR}")
-    print(f"Target URL:             {target_url}")
-    print(f"Objective:              {objective}")
+    # Parse optional --run-id argument
+    initial_run_id = None
+    if "--run-id" in sys.argv:
+        idx = sys.argv.index("--run-id")
+        if idx + 1 < len(sys.argv):
+            initial_run_id = sys.argv[idx + 1]
 
-    # Set defect_enabled in config.json
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    cfg["defect_enabled"] = True
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2)
-    print("✓ Intentional defect enabled in config.json: checkout button is disabled with broken ID.")
+    if not initial_run_id:
+        # -------------------------------------------------------------------------
+        # PHASE 1: Enable Defect in Sample Store
+        # -------------------------------------------------------------------------
+        await step_header(1, "Injecting Intentional Defect into Target Application")
+        print(f"Target Store Directory: {SAMPLE_STORE_DIR}")
+        print(f"Target URL:             {target_url}")
+        print(f"Objective:              {objective}")
 
-    # -------------------------------------------------------------------------
-    # PHASE 2: Execute Initial Verification Run (Expected to Fail)
-    # -------------------------------------------------------------------------
-    await step_header(2, "Executing Real Kane CLI Verification Run (Defective State)")
-    
-    async with AsyncSessionLocal() as session:
-        initial_run = VerificationRunEntity(
-            title="E-Commerce Checkout Flow Verification",
+        # Set defect_enabled in config.json
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        cfg["defect_enabled"] = True
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        print("✓ Intentional defect enabled in config.json: checkout button is disabled with broken ID.")
+
+        # -------------------------------------------------------------------------
+        # PHASE 2: Execute Initial Verification Run (Expected to Fail)
+        # -------------------------------------------------------------------------
+        await step_header(2, "Executing Real Kane CLI Verification Run (Defective State)")
+        
+        async with AsyncSessionLocal() as session:
+            initial_run = VerificationRunEntity(
+                title="E-Commerce Checkout Flow Verification",
+                objective=objective,
+                target_url=target_url,
+                mode="verify_and_repair",
+                status="queued"
+            )
+            session.add(initial_run)
+            await session.commit()
+            await session.refresh(initial_run)
+            initial_run_id = initial_run.id
+
+        print(f"Created ShipProof Run ID: {initial_run_id}")
+        print(f"Executing Kane CLI browser test via RunnerService (Headless Chrome)...")
+
+        start_time = time.time()
+        await runner_service._execute_run_lifecycle(
+            run_id=initial_run_id,
             objective=objective,
             target_url=target_url,
-            mode="verify_and_repair",
-            status="queued"
+            headless=True,
+            timeout=120
         )
-        session.add(initial_run)
-        await session.commit()
-        await session.refresh(initial_run)
-        initial_run_id = initial_run.id
-
-    print(f"Created ShipProof Run ID: {initial_run_id}")
-    print(f"Executing Kane CLI browser test via RunnerService (Headless Chrome)...")
-
-    start_time = time.time()
-    await runner_service._execute_run_lifecycle(
-        run_id=initial_run_id,
-        objective=objective,
-        target_url=target_url,
-        headless=True,
-        timeout=120
-    )
-    elapsed = time.time() - start_time
+        elapsed = time.time() - start_time
+    else:
+        print(f"\nResuming demonstration with existing failed run: {initial_run_id}")
+        elapsed = 0.0
 
     # Inspect initial run results
     async with AsyncSessionLocal() as session:
