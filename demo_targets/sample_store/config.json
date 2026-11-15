@@ -1,0 +1,5 @@
+{
+  "defect_enabled": false,
+  "defect_type": "checkout_button_broken",
+  "defect_description": "Checkout button has broken ID and disabled state preventing order completion"
+}

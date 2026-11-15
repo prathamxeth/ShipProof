@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;" id="product-detail">
+  <a href="/" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none; margin-bottom: 1rem; display: inline-block;">&larr; Back to Catalog</a>
+  <div style="font-size: 4rem; margin-bottom: 1rem;">{{ product.icon }}</div>
+  <h1 id="product-title" style="font-size: 2rem; margin-bottom: 0.5rem;">{{ product.name }}</h1>
+  <p style="color: #60a5fa; font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;">${{ "%.2f"|format(product.price) }}</p>
+  <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 2rem;">{{ product.details }}</p>
+
+  <form action="/cart/add" method="POST">
+    <input type="hidden" name="product_id" value="{{ product.id }}">
+    <button type="submit" class="btn btn-primary" id="detail-add-to-cart-btn" style="width: 100%; padding: 0.8rem; font-size: 1.1rem;">Add to Cart</button>
+  </form>
+</div>
+{% endblock %}

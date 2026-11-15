@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 2rem auto; text-align: center; padding: 3rem 2rem;" id="confirmation-card">
+  <div style="font-size: 3.5rem; color: var(--success); margin-bottom: 1rem;">&#10003;</div>
+  <h1 id="confirmation-title" style="font-size: 2rem; margin-bottom: 0.5rem; color: #34d399;">Order Confirmed!</h1>
+  <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem;">Thank you for your purchase. Your order has been placed successfully.</p>
+
+  <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+    <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">Order Reference</div>
+    <div style="font-size: 1.5rem; font-weight: 800; color: #60a5fa;" id="order-number">{{ order_id }}</div>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Estimated Delivery: 2-3 Business Days</div>
+  </div>
+
+  <a href="/" class="btn btn-primary" id="continue-shopping-btn">Continue Shopping</a>
+</div>
+{% endblock %}

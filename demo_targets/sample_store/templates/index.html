@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h1 id="page-title" style="font-size: 1.75rem; margin-bottom: 0.5rem;">Featured Tech Gear</h1>
+  <p style="color: var(--text-muted);">Autonomous verification catalog with full checkout workflow</p>
+</div>
+
+<div class="grid">
+  {% for p in products %}
+    <div class="card" id="product-card-{{ p.id }}">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ p.icon }}</div>
+      <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">
+        <a href="/product/{{ p.id }}" style="color: inherit; text-decoration: none;" id="product-link-{{ p.id }}">{{ p.name }}</a>
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">{{ p.description }}</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 1.25rem; font-weight: 700; color: #60a5fa;">${{ "%.2f"|format(p.price) }}</span>
+        <form action="/cart/add" method="POST" style="display: inline;">
+          <input type="hidden" name="product_id" value="{{ p.id }}">
+          <button type="submit" class="btn btn-primary" id="add-to-cart-{{ p.id }}">Add to Cart</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
