@@ -211,9 +211,11 @@ async def main():
         f.write(repaired_cart)
 
     # Also update config.json
-    cfg["defect_enabled"] = False
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        store_cfg = json.load(f)
+    store_cfg["defect_enabled"] = False
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2)
+        json.dump(store_cfg, f, indent=2)
 
     print("✓ Source code patch applied to cart.html and config.json.")
 

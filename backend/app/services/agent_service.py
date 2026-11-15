@@ -157,7 +157,7 @@ class AgentService:
             f"Test Objective: {packet.objective}\n"
             f"Failed Step: {packet.failed_step}\n"
             f"Failure Message: {packet.failure_message}\n"
-            f"Failure Details: {json.dumps(packet.failure_yaml)}\n"
+            f"Failure Details: {json.dumps(packet.failure_yaml, default=str)}\n"
             f"Candidate Source Files: {packet.relevant_files}\n\n"
             f"Please output a brief diagnosis identifying the root cause and the specific files to modify."
         )
