@@ -124,6 +124,8 @@ class RepairDetailResponse(RepairSummaryResponse):
     files_modified: Optional[List[str]] = None
     patch_diff: Optional[str] = None
     repair_packet: Optional[RepairPacketModel] = None
+    prompt_markdown: Optional[str] = None
+    job_directory: Optional[str] = None
     failure_notes: Optional[str] = None
     events: List[RepairEventResponse] = []
 
@@ -223,3 +225,19 @@ class CancelResponse(BaseModel):
     run_id: str
     status: str
     message: str
+
+
+# --- Overview & Stats Schemas ---
+class OverviewStatsResponse(BaseModel):
+    total_runs: int = 0
+    passed_runs: int = 0
+    failed_runs: int = 0
+    running_runs: int = 0
+    cancelled_or_incomplete_runs: int = 0
+    total_repairs: int = 0
+    repairs_verified: int = 0
+    repairs_awaiting_approval: int = 0
+    repairs_in_progress: int = 0
+    total_projects: int = 0
+    recent_runs: List[RunSummaryResponse] = []
+    recent_repairs: List[RepairSummaryResponse] = []

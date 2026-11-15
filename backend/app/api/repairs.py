@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
+from backend.app.core.config import settings
 from backend.app.core.database import get_db
 from backend.app.core.errors import ResourceNotFoundException, ShipProofException
 from backend.app.models.entities import RepairRecordEntity, RepairEventEntity, VerificationRunEntity
@@ -87,6 +88,25 @@ async def get_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
         except Exception:
             pass
 
+    # Resolve published prompt and job directory
+    ws_repair_dir = settings.WORKSPACE_DIR / ".shipproof" / "repairs" / repair_id
+    prompt_md = None
+    if (ws_repair_dir / "prompt.md").exists():
+        try:
+            prompt_md = (ws_repair_dir / "prompt.md").read_text(encoding="utf-8")
+        except Exception:
+            pass
+    elif (settings.DATA_DIR / "repairs" / repair_id / "repair_prompt.md").exists():
+        try:
+            prompt_md = (settings.DATA_DIR / "repairs" / repair_id / "repair_prompt.md").read_text(encoding="utf-8")
+        except Exception:
+            pass
+    elif packet_obj:
+        try:
+            prompt_md = repair_orchestrator.packet_service.format_repair_prompt(packet_obj)
+        except Exception:
+            pass
+
     events_resp = [
         RepairEventResponse(
             id=e.id,
@@ -112,6 +132,8 @@ async def get_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
         git_commit_before=repair.git_commit_before,
         git_commit_after=repair.git_commit_after,
         repair_packet=packet_obj,
+        prompt_markdown=prompt_md,
+        job_directory=str(ws_repair_dir),
         retest_run_id=repair.retest_run_id,
         retest_passed=repair.retest_passed,
         failure_notes=repair.failure_notes,
