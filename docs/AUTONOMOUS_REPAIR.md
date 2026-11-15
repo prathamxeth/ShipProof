@@ -99,6 +99,7 @@ The **Repair Packet** (`backend/app/models/schemas.py:RepairPacketModel`) encaps
 | `project_dir` | `String` | Target source code directory |
 | `relevant_files` | `List[String]` | Scoped candidate source code files likely containing the bug |
 | `git_commit_before` | `String` | Repository commit SHA before any repair code is applied |
+| `execution_mode` | `String` | Execution mode: `ide_mediated` (default) vs `programmatic` |
 | `created_at` | `DateTime` | Timestamp of packet generation |
 
 ### Security & Context Safeguards
@@ -108,7 +109,7 @@ The **Repair Packet** (`backend/app/models/schemas.py:RepairPacketModel`) encaps
 
 ---
 
-## 3. Antigravity Agent Integration Bridge
+## 3. Antigravity Agent Integration Bridge & Execution Modes
 
 ### CLI and IDE Capability Assessment
 The bridge inspected the real environment capabilities of Antigravity:
@@ -116,16 +117,26 @@ The bridge inspected the real environment capabilities of Antigravity:
 - **Supported Models:** `gemini-3.8-flash-high`, `gemini-3.8-flash-low`, `claude-sonnet-4-6`, `claude-opus-4-6-thinking`
 - **Headless Non-Interactive Flag:** `agy -p "..." --output-format json`
 
-### Security Compliance (No `--dangerously-skip-permissions`)
-In accordance with Rule 8, `--dangerously-skip-permissions` is **never** used. Running headless file modifications without explicit review triggers interactive terminal prompts that block automation. 
+### Execution Integrity Audit Findings
+An exhaustive audit of the `agy` CLI binary revealed:
+1. **Interactive OAuth Gate:** Invoking `agy` headlessly outside the active IDE session triggers a blocking OAuth URL challenge:
+   ```text
+   consumerOAuth: starting OAuth flow
+   Authentication required. Please visit the URL to log in:
+     https://accounts.google.com/o/oauth2/auth?...
+   Waiting for authentication (timeout 60s)...
+   ```
+2. **Permission Boundary Constraints:** Unattended tool execution in `agy` requires `--dangerously-skip-permissions`. Without it, the CLI halts on terminal stdin prompts before writing to disk. Under ShipProof Rule 8, `--dangerously-skip-permissions` is **strictly prohibited**.
+3. **Architectural Realism:** As a result, ShipProof does not claim unattended background agent execution. Instead, ShipProof natively implements the **IDE-Mediated Repair Workflow**.
 
-Therefore, ShipProof implements the **IDE-Mediated Repair Workflow**:
-1. ShipProof publishes structured repair job metadata to `.shipproof/repairs/<repair_id>/`:
+### IDE-Mediated Repair Workflow
+1. **ShipProof Publishes Repair Job:** Structured repair packet and prompt are generated into `.shipproof/repairs/<repair_id>/`:
    - `job.json`: Full repair packet payload and current state.
    - `prompt.md`: Markdown prompt tailored for the Antigravity IDE agent.
-2. The Antigravity IDE agent accesses the workspace files, inspects the failure triage, and applies surgical source code modifications.
-3. The user or orchestrator reviews the resulting unified Git diff and approves the change via `POST /api/repairs/{id}/approve`.
-4. Only upon explicit approval does the orchestrator apply, validate, and rerun the Kane verification.
+2. **Antigravity IDE Agent Investigates:** The active Antigravity IDE agent reads `prompt.md`, investigates candidate files, and applies surgical source code modifications.
+3. **Workspace Modification Detection:** ShipProof monitors Git status via `detect_workspace_changes()`. When modifications appear in the target project, the state transitions from `AWAITING_AGENT` to `AGENT_RESPONSE_RECEIVED` and `AWAITING_APPROVAL`.
+4. **Explicit User Review:** The user reviews the unified Git diff in ShipProof Repair Studio and approves the change via `POST /api/repairs/{id}/approve`.
+5. **Kane CLI Retest Execution:** ShipProof validates workspace boundaries, applies the locked diff, and triggers a real Kane CLI retest to prove the repair works.
 
 ---
 
@@ -136,15 +147,17 @@ The repair lifecycle is strictly governed by `RepairOrchestrator` (`backend/app/
 ```
 CREATED
    ↓
-ANALYZING ──────→ (Error) ──→ FAILED
+JOB_PUBLISHED
    ↓
-PROPOSED
+AWAITING_AGENT
+   ↓ (Agent applies source edits in workspace)
+AGENT_RESPONSE_RECEIVED
    ↓
 AWAITING_APPROVAL ──→ (User Cancel) ──→ CANCELLED
-   ↓ (Explicit Approval)
+   ↓ (Explicit Approval in ShipProof Studio)
 APPLYING
    ↓
-VALIDATING ─────→ (Syntax/Build Break) ──→ UNRESOLVED
+VALIDATING ─────────→ (Boundary/Syntax Violation) ──→ UNRESOLVED
    ↓
 RETESTING (Kane CLI Execution)
    ↓
@@ -167,33 +180,48 @@ Every state transition records a timestamped `RepairEventEntity` in SQLite and b
 
 ## 6. Live Closed-Loop Demonstration Walkthrough
 
-A live end-to-end verification and repair demonstration was executed on macOS using the included `sample_store` demo application.
+A fresh end-to-end verification and repair demonstration was executed on macOS using the included `sample_store` demo application with the explicit IDE-mediated state machine.
 
 ### Phase 1: Defect Injection
 An intentional defect was enabled in `demo_targets/sample_store/templates/cart.html` and `config.json`:
-- The cart checkout button ID was mutated to `checkout-btn-broken` with `disabled` attribute.
-- An error banner `<div id="defect-msg">Error: Checkout button disabled by defect</div>` was injected.
+- The cart checkout button was mutated to `checkout-btn-broken` with `disabled` attribute.
+- An error banner `<div id="defect-msg">Error: Checkout button disabled by defect</div>` was rendered.
 
 ### Phase 2: Initial Kane Verification Run (Failure Detection)
-- **ShipProof Run ID:** `0c1d3be8-4e9f-446e-98d9-900d5a14389c`
+- **ShipProof Run ID:** `157c47e8-b90b-47e1-979d-38bbd01e9118`
 - **Target URL:** `http://127.0.0.1:3005/product/1`
 - **Objective:** `Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed.`
-- **Real Kane Session ID:** `/Users/pratham/.testmuai/kaneai/sessions/c97f08bf-2114-435b-80e7-cdb8e58d4f55`
-- **Evidence Pack:** `614c90a4-40ca-4e2d-b6b0-de4274300f92.evidence`
+- **Real Kane Session ID:** `/Users/pratham/.testmuai/kaneai/sessions/5017d3ed-d940-4b08-8f21-47e75dbf859e`
+- **Evidence Pack:** `e4578b38-79bf-46e9-9c19-5af88df6a163.evidence`
 - **Observed Result:** Kane navigated to `/product/1`, clicked "Add to Cart", navigated to `/cart`, identified the disabled checkout button, and failed at Step 3.
 - **Kane Failure Reason:**
-  > `"The cart's Proceed to Checkout button is disabled and the page reports a checkout defect. Fix the cart checkout eligibility logic so Proceed to Checkout is enabled."`
-- **Terminal Verdict:** `FAILED` (Exit code: 1).
+  > `"The store accepts the add-to-cart action but leaves checkout unavailable, preventing a customer with an item in the cart from continuing. Fix the cart state after a successful add so that Proceed to Checkout is enabled when the cart contains the added item, then verify it opens Secure Checkout."`
+- **Terminal Verdict:** `FAILED` (Exit code: 1, Duration: 46.6s).
 
-### Phase 3: Repair Packet Generation
-- **Repair Session ID:** `3fff0cce-4f54-4b1b-8121-71ab938a9b25`
-- Repair packet generated and published to `.shipproof/repairs/3fff0cce-4f54-4b1b-8121-71ab938a9b25/`.
-- State transitioned: `CREATED -> ANALYZING -> PROPOSED -> AWAITING_APPROVAL`.
+### Phase 3: Repair Packet Generation & Job Publication
+- **Repair Session ID:** `ac1efe85-8c32-4d42-b76e-e68bfeb20c10`
+- **Execution Mode:** `ide_mediated`
+- **Repair Packet Published:** `.shipproof/repairs/ac1efe85-8c32-4d42-b76e-e68bfeb20c10/` (`job.json` & `prompt.md`)
+- **State Transition:** `CREATED -> JOB_PUBLISHED -> AWAITING_AGENT`.
 
-### Phase 4: Antigravity Code Repair
-The Antigravity agent repaired `demo_targets/sample_store/templates/cart.html` and `config.json`.
-- **Recorded Git Diff:**
+### Phase 4: Antigravity IDE Agent Code Repair & Change Detection
+The Antigravity IDE Agent applied the surgical repair to `demo_targets/sample_store/templates/cart.html` and `config.json`.
+- ShipProof's `detect_workspace_changes()` detected modifications to `templates/cart.html` and `config.json`.
+- **State Transition:** `AWAITING_AGENT -> AGENT_RESPONSE_RECEIVED -> AWAITING_APPROVAL`.
+- **Captured Git Patch (`patch_diff`):**
 ```diff
+diff --git a/demo_targets/sample_store/config.json b/demo_targets/sample_store/config.json
+index ca45016..77a4c33 100644
+--- a/demo_targets/sample_store/config.json
++++ b/demo_targets/sample_store/config.json
+@@ -1,5 +1,5 @@
+ {
+-  "defect_enabled": true,
++  "defect_enabled": false,
+   "defect_type": "checkout_button_broken",
+   "defect_description": "Checkout button has broken ID and disabled state preventing order completion"
+ }
+\ No newline at end of file
 diff --git a/demo_targets/sample_store/templates/cart.html b/demo_targets/sample_store/templates/cart.html
 index cd1b827..8565ea2 100644
 --- a/demo_targets/sample_store/templates/cart.html
@@ -217,21 +245,21 @@ index cd1b827..8565ea2 100644
 ```
 
 ### Phase 5: Approval & Retest Execution
-- Orchestrator approved the repair: `APPLYING -> VALIDATING -> RETESTING`.
+- Orchestrator approved the repair: `AWAITING_APPROVAL -> APPLYING -> VALIDATING -> RETESTING`.
 - Kane CLI retest was launched with the identical objective and target URL:
-  - **Retest Run ID:** `b81f23b2-cf41-42a8-9f17-25f89c5ed160`
-  - **Retest Kane Session ID:** `/Users/pratham/.testmuai/kaneai/sessions/40e33715-e2f4-422b-af8d-e688a317133a`
-  - **Retest Evidence Pack:** `41df1783-f614-4323-b8d7-003869a6c097.evidence`
+  - **Retest Run ID:** `eab2ddcc-5b43-4467-b5ad-df7e6f3fc30f`
+  - **Retest Kane Session ID:** `/Users/pratham/.testmuai/kaneai/sessions/e3604e6d-0d9e-4ed6-9e32-fc2825b653e1`
+  - **Retest Evidence Pack:** `2b863177-d855-4b92-b976-3ea8f862dcd8.evidence`
 - **Real Retest Execution Steps:**
   - Step 1: Navigated to `http://127.0.0.1:3005/product/1` (`status: done`)
   - Step 2: Clicked "Add to Cart" (`status: done`)
-  - Step 3: Clicked "Proceed to Checkout in the cart" (`status: done`)
-  - Step 4: Waited for "Secure Checkout" page to load (`status: done`)
+  - Step 3: Clicked "Proceed to Checkout in the cart summary panel" (`status: done`)
+  - Step 4: Waited for "Secure Checkout" heading to be visible (`status: done`)
   - Step 5: Analyzed "Secure Checkout" heading (`status: done`)
   - Step 6: Asserted "Secure Checkout" is displayed (`status: done`)
-- **Terminal Event:** `run_end` with `status: "passed"`, duration: 35.3s.
+- **Terminal Event:** `run_end` with `status: "passed"`, duration: 41.6s.
 
 ### Phase 6: Final Verification Proof
-- Repair Record `3fff0cce-4f54-4b1b-8121-71ab938a9b25` transitioned to **`VERIFIED`** (`retest_passed: true`).
-- Parent Verification Run `0c1d3be8-4e9f-446e-98d9-900d5a14389c` updated to **`repaired: true`**, **`status: "verified"`**, `repair_attempts: 1`.
+- Repair Record `ac1efe85-8c32-4d42-b76e-e68bfeb20c10` transitioned to **`VERIFIED`** (`retest_passed: true`).
+- Parent Verification Run `157c47e8-b90b-47e1-979d-38bbd01e9118` updated to **`repaired: true`**, **`status: "verified"`**, `repair_attempts: 1`.
 - **Closed loop is fully verified and documented with genuine Kane CLI evidence.**
