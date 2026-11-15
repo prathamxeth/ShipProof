@@ -147,7 +147,7 @@ class RepairOrchestrator:
                 failing_step_index=packet.failed_step,
                 status="CREATED",
                 git_commit_before=git_before,
-                repair_packet_json=json.dumps(packet.model_dump())
+                repair_packet_json=packet.model_dump_json()
             )
             session.add(repair)
             await session.commit()

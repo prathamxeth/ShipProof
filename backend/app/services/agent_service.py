@@ -113,7 +113,7 @@ class AgentService:
         job_data = {
             "repair_id": repair_id,
             "status": "AWAITING_AGENT_ANALYSIS",
-            "packet": packet.model_dump(),
+            "packet": packet.model_dump(mode="json"),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
 
