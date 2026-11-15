@@ -256,8 +256,7 @@ async def main():
             select(RepairRecordEntity)
             .where(RepairRecordEntity.id == repair_id)
             .options(
-                selectinload(RepairRecordEntity.events),
-                selectinload(RepairRecordEntity.retest_run)
+                selectinload(RepairRecordEntity.events)
             )
         )
         final_repair = res.scalar_one()
@@ -268,14 +267,22 @@ async def main():
         )
         parent_run = parent_res.scalar_one()
 
+        retest_run = None
+        if final_repair.retest_run_id:
+            rt_res = await session.execute(
+                select(VerificationRunEntity)
+                .where(VerificationRunEntity.id == final_repair.retest_run_id)
+            )
+            retest_run = rt_res.scalar_one_or_none()
+
     print(f"Final Repair Status:       {final_repair.status}")
     print(f"Retest Passed:             {final_repair.retest_passed}")
     print(f"Parent Run Status:         {parent_run.status.upper()}")
     print(f"Parent Run Repaired:       {parent_run.repaired}")
     print(f"Repair Attempts:           {parent_run.repair_attempts}")
 
-    if final_repair.retest_run:
-        rt = final_repair.retest_run
+    if retest_run:
+        rt = retest_run
         print(f"\nRetest Run ID:             {rt.id}")
         print(f"Retest Status:             {rt.status.upper()}")
         print(f"Retest Kane Session ID:    {rt.kane_session_id}")
