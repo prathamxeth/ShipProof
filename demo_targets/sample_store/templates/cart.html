@@ -44,8 +44,14 @@
       </div>
 
       <div>
-        <!-- REPAIRED BY SHIPPROOF ANTIGRAVITY AGENT -->
-        <a id="checkout-btn" href="/checkout" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</a>
+        {% if defect_enabled %}
+          <!-- INTENTIONAL DEFECT: Button has broken ID and disabled state -->
+          <button id="checkout-btn-broken" class="btn btn-disabled" disabled style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</button>
+          <div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.4rem; text-align: right;" id="defect-msg">Error: Checkout button disabled by defect</div>
+        {% else %}
+          <!-- NORMAL / REPAIRED STATE -->
+          <a id="checkout-btn" href="/checkout" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</a>
+        {% endif %}
       </div>
     </div>
 
