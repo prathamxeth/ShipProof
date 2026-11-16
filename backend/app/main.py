@@ -12,6 +12,7 @@ from backend.app.core.errors import (
     shipproof_exception_handler,
     generic_exception_handler
 )
+from backend.app.services.runner_service import runner_service
 from backend.app.api import api_router
 
 # Set up logging early
@@ -59,6 +60,7 @@ async def lifespan(app: FastAPI):
     await recover_interrupted_states()
     yield
     logger.info(f"Shutting down {settings.APP_NAME}...")
+    await runner_service.terminate_all_processes()
 
 app = FastAPI(
     title=settings.APP_NAME,

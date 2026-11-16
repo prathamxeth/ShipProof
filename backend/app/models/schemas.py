@@ -19,6 +19,7 @@ class EventResponse(BaseModel):
 
     id: str
     run_id: str
+    event_seq: Optional[int] = 1
     event_type: str
     step_number: Optional[int] = None
     status: Optional[str] = None

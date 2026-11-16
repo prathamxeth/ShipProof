@@ -71,7 +71,7 @@ class VerificationRunEntity(Base):
     project = relationship("ProjectEntity", back_populates="runs")
     steps = relationship("VerificationStepEntity", back_populates="run", cascade="all, delete-orphan", order_by="VerificationStepEntity.step_index")
     repairs = relationship("RepairRecordEntity", back_populates="run", cascade="all, delete-orphan", order_by="RepairRecordEntity.attempt_number")
-    events = relationship("VerificationEventEntity", back_populates="run", cascade="all, delete-orphan", order_by="VerificationEventEntity.created_at")
+    events = relationship("VerificationEventEntity", back_populates="run", cascade="all, delete-orphan", order_by="VerificationEventEntity.event_seq")
 
 
 class VerificationEventEntity(Base):
@@ -79,6 +79,7 @@ class VerificationEventEntity(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     run_id = Column(String(36), ForeignKey("verification_runs.id", ondelete="CASCADE"), nullable=False)
+    event_seq = Column(Integer, default=1, nullable=False)
     event_type = Column(String(50), nullable=False)
     step_number = Column(Integer, nullable=True)
     status = Column(String(50), nullable=True)

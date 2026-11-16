@@ -30,11 +30,12 @@ from backend.app.core.logging import get_logger
 from backend.app.services.runner_service import runner_service
 from backend.app.services.evidence_service import PathTraversalError
 from backend.app.core.url_validator import validate_target_url
+from backend.app.core.auth import verify_auth, verify_protected_action
 
 router = APIRouter(prefix="/runs", tags=["Verification Runs"])
 logger = get_logger("api.runs")
 
-@router.post("", response_model=RunSummaryResponse, status_code=status.HTTP_201_CREATED, summary="Create and launch a verification run")
+@router.post("", response_model=RunSummaryResponse, status_code=status.HTTP_201_CREATED, summary="Create and launch a verification run", dependencies=[Depends(verify_protected_action)])
 async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends(get_db)):
     target_url = payload.target_url
 
@@ -132,7 +133,7 @@ async def get_verification_run(run_id: str, db: AsyncSession = Depends(get_db)):
     resp.events_count = len(run.events)
     return resp
 
-@router.post("/{run_id}/cancel", response_model=CancelResponse, summary="Cancel an active verification run")
+@router.post("/{run_id}/cancel", response_model=CancelResponse, summary="Cancel an active verification run", dependencies=[Depends(verify_protected_action)])
 async def cancel_verification_run(run_id: str, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(VerificationRunEntity).where(VerificationRunEntity.id == run_id))
     run = res.scalar_one_or_none()
@@ -153,11 +154,12 @@ async def cancel_verification_run(run_id: str, db: AsyncSession = Depends(get_db
         message="Verification run cancelled successfully" if cancelled else "No active process was running"
     )
 
-@router.get("/{run_id}/events", summary="Get run events or live SSE event stream")
+@router.get("/{run_id}/events", summary="Get run events or live SSE event stream", dependencies=[Depends(verify_auth)])
 async def get_run_events(
     run_id: str,
     request: Request,
     stream: bool = Query(False, description="Stream live events via Server-Sent Events"),
+    last_event_id: Optional[int] = Query(None, description="Monotonic event sequence to replay after"),
     db: AsyncSession = Depends(get_db)
 ):
     # Verify run exists
@@ -169,37 +171,67 @@ async def get_run_events(
     accept_header = request.headers.get("accept", "")
     wants_sse = stream or "text/event-stream" in accept_header
 
+    # Determine Last-Event-ID from header or query param
+    header_last_id = request.headers.get("last-event-id")
+    effective_last_id = last_event_id
+    if effective_last_id is None and header_last_id:
+        try:
+            effective_last_id = int(header_last_id.strip())
+        except ValueError:
+            effective_last_id = None
+
     if wants_sse:
         async def event_generator():
-            # 1. First replay existing historical events
-            hist_res = await db.execute(
+            last_seq_sent = effective_last_id or 0
+
+            # 1. First replay existing historical events (filtering by sequence if reconnecting)
+            hist_query = (
                 select(VerificationEventEntity)
                 .where(VerificationEventEntity.run_id == run_id)
-                .order_by(VerificationEventEntity.created_at.asc())
             )
+            if effective_last_id is not None:
+                hist_query = hist_query.where(VerificationEventEntity.event_seq > effective_last_id)
+            
+            hist_query = hist_query.order_by(VerificationEventEntity.event_seq.asc())
+            hist_res = await db.execute(hist_query)
+            
             for ev in hist_res.scalars().all():
+                seq = ev.event_seq or (last_seq_sent + 1)
+                last_seq_sent = max(last_seq_sent, seq)
                 payload = {
+                    "event_seq": seq,
                     "event_type": ev.event_type,
                     "step_number": ev.step_number,
                     "status": ev.status,
                     "description": ev.description,
                     "timestamp": ev.created_at.isoformat()
                 }
-                yield f"data: {json.dumps(payload)}\n\n"
+                yield f"id: {seq}\ndata: {json.dumps(payload)}\n\n"
 
-            # 2. If run already finished, exit
+            # 2. If run already finalized, send stream termination
             if run.status in ("passed", "failed", "error", "cancelled", "incomplete"):
                 yield f"data: {json.dumps({'event_type': 'stream_end', 'status': run.status})}\n\n"
                 return
 
-            # 3. Stream real-time events from subscriber queue
+            # 3. Stream real-time events from subscriber queue with deduplication
             queue = runner_service.subscribe(run_id)
             try:
                 while True:
                     try:
-                        event_data = await asyncio.wait_for(queue.get(), timeout=30.0)
-                        yield f"data: {json.dumps(event_data)}\n\n"
-                        if event_data.get("event_type") in ("completed", "cancelled"):
+                        event_data = await asyncio.wait_for(queue.get(), timeout=15.0)
+                        seq = event_data.get("event_seq")
+                        
+                        # Deduplicate events that were already streamed during history replay
+                        if seq is not None and seq <= last_seq_sent:
+                            continue
+                        
+                        if seq is not None:
+                            last_seq_sent = seq
+                            yield f"id: {seq}\ndata: {json.dumps(event_data)}\n\n"
+                        else:
+                            yield f"data: {json.dumps(event_data)}\n\n"
+
+                        if event_data.get("event_type") in ("completed", "cancelled") or event_data.get("status") in ("passed", "failed", "error", "cancelled", "incomplete"):
                             break
                     except asyncio.TimeoutError:
                         # Send heartbeat comment to keep connection alive
@@ -221,7 +253,7 @@ async def get_run_events(
         events_res = await db.execute(
             select(VerificationEventEntity)
             .where(VerificationEventEntity.run_id == run_id)
-            .order_by(VerificationEventEntity.created_at.asc())
+            .order_by(VerificationEventEntity.event_seq.asc(), VerificationEventEntity.created_at.asc())
         )
         entities = events_res.scalars().all()
         result = []
@@ -235,6 +267,7 @@ async def get_run_events(
             result.append(EventResponse(
                 id=e.id,
                 run_id=e.run_id,
+                event_seq=e.event_seq,
                 event_type=e.event_type,
                 step_number=e.step_number,
                 status=e.status,
@@ -284,7 +317,7 @@ async def get_run_evidence(run_id: str, db: AsyncSession = Depends(get_db)):
         network_failures_count=manifest.get("network_failures_count", 0)
     )
 
-@router.get("/{run_id}/evidence/files/{file_path:path}", summary="Securely serve evidence screenshots, HARs and logs")
+@router.get("/{run_id}/evidence/files/{file_path:path}", summary="Securely serve evidence screenshots, HARs and logs", dependencies=[Depends(verify_auth)])
 async def get_evidence_file(run_id: str, file_path: str):
     """
     Safely serves an extracted evidence artifact while strictly enforcing path containment.

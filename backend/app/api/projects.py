@@ -8,11 +8,12 @@ from backend.app.models.entities import ProjectEntity
 from backend.app.models.schemas import ProjectCreate, ProjectResponse
 from backend.app.core.logging import get_logger
 from backend.app.core.url_validator import validate_target_url
+from backend.app.core.auth import verify_protected_action
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 logger = get_logger("api.projects")
 
-@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED, summary="Create a new target project")
+@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED, summary="Create a new target project", dependencies=[Depends(verify_protected_action)])
 async def create_project(payload: ProjectCreate, db: AsyncSession = Depends(get_db)):
     validated_url = validate_target_url(payload.target_url)
     project = ProjectEntity(

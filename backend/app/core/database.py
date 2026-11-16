@@ -55,6 +55,12 @@ async def init_db() -> None:
                 if col_name not in existing_rep_cols:
                     await conn.execute(text(f"ALTER TABLE repair_records ADD COLUMN {col_name} {col_type};"))
 
+            # verification_events
+            result_ev = await conn.execute(text("PRAGMA table_info(verification_events);"))
+            existing_ev_cols = {row[1] for row in result_ev.fetchall()}
+            if "event_seq" not in existing_ev_cols:
+                await conn.execute(text("ALTER TABLE verification_events ADD COLUMN event_seq INTEGER DEFAULT 1;"))
+
     logger.info("Database tables and columns verified/created successfully.")
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

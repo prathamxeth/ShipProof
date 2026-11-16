@@ -25,11 +25,12 @@ from backend.app.models.schemas import (
 from backend.app.core.logging import get_logger
 from backend.app.services.repair_orchestrator import repair_orchestrator
 from backend.app.services.git_service import GitService
+from backend.app.core.auth import verify_auth, verify_protected_action
 
 router = APIRouter(prefix="/repairs", tags=["Autonomous Repairs"])
 logger = get_logger("api.repairs")
 
-@router.post("", response_model=RepairSummaryResponse, status_code=status.HTTP_201_CREATED, summary="Create an autonomous repair job")
+@router.post("", response_model=RepairSummaryResponse, status_code=status.HTTP_201_CREATED, summary="Create an autonomous repair job", dependencies=[Depends(verify_protected_action)])
 async def create_repair(payload: RepairCreate, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(VerificationRunEntity).where(VerificationRunEntity.id == payload.run_id))
     run = res.scalar_one_or_none()
@@ -145,7 +146,7 @@ async def get_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
         events=events_resp
     )
 
-@router.post("/{repair_id}/check-changes", summary="Detect workspace changes applied by Antigravity IDE agent")
+@router.post("/{repair_id}/check-changes", summary="Detect workspace changes applied by Antigravity IDE agent", dependencies=[Depends(verify_auth)])
 async def check_repair_changes(repair_id: str, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id))
     repair = res.scalar_one_or_none()
@@ -155,7 +156,7 @@ async def check_repair_changes(repair_id: str, db: AsyncSession = Depends(get_db
     result = await repair_orchestrator.detect_workspace_changes(repair_id)
     return result
 
-@router.post("/{repair_id}/approve", response_model=RepairApproveResponse, summary="Approve and apply proposed repair")
+@router.post("/{repair_id}/approve", response_model=RepairApproveResponse, summary="Approve and apply proposed repair", dependencies=[Depends(verify_protected_action)])
 async def approve_repair(repair_id: str, payload: RepairApproveRequest = None, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id))
     repair = res.scalar_one_or_none()
@@ -209,7 +210,7 @@ async def approve_repair(repair_id: str, payload: RepairApproveRequest = None, d
         message="Repair approved. Changes staged, build validating, and Kane re-verification launched."
     )
 
-@router.post("/{repair_id}/cancel", summary="Cancel repair session")
+@router.post("/{repair_id}/cancel", summary="Cancel repair session", dependencies=[Depends(verify_protected_action)])
 async def cancel_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id))
     repair = res.scalar_one_or_none()
@@ -223,7 +224,7 @@ async def cancel_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
         "message": "Repair session cancelled" if cancelled else "Repair was not active"
     }
 
-@router.get("/{repair_id}/events", summary="Get repair audit events or live SSE stream")
+@router.get("/{repair_id}/events", summary="Get repair audit events or live SSE stream", dependencies=[Depends(verify_auth)])
 async def get_repair_events(
     repair_id: str,
     request: Request,

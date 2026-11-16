@@ -192,8 +192,8 @@ async def test_sse_event_streaming(client: AsyncClient):
     async with client.stream("GET", f"/api/runs/{run_id}/events?stream=true") as response:
         assert response.status_code == 200
         assert "text/event-stream" in response.headers.get("content-type", "")
-        # Read at least one event or comment
+        # Read at least one event, id, or comment
         async for line in response.aiter_lines():
             if line.strip():
-                assert line.startswith("data:") or line.startswith(":")
+                assert line.startswith("data:") or line.startswith(":") or line.startswith("id:")
                 break

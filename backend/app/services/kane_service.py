@@ -1,9 +1,10 @@
 import asyncio
 import os
+import signal
 import shutil
 import inspect
 from pathlib import Path
-from typing import Optional, AsyncGenerator, Tuple, List, Dict, Any
+from typing import Optional, AsyncGenerator, Tuple, List, Dict, Any, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from backend.app.core.config import settings
@@ -11,6 +12,50 @@ from backend.app.core.logging import get_logger
 from backend.app.services.kane_parser import KaneParser, NormalizedEvent
 
 logger = get_logger("kane_service")
+
+async def terminate_process_tree(proc: asyncio.subprocess.Process, timeout_sec: float = 1.5):
+    """
+    Terminates a subprocess and all of its descendants using process group signals.
+    Prevents orphaned Chromium, Node, or Playwright processes.
+    """
+    if proc is None or proc.returncode is not None:
+        return
+
+    pid = proc.pid
+    try:
+        pgid = os.getpgid(pid)
+    except (ProcessLookupError, OSError):
+        pgid = None
+
+    # Step 1: SIGTERM to entire process group
+    try:
+        if pgid is not None:
+            os.killpg(pgid, signal.SIGTERM)
+        else:
+            proc.terminate()
+    except (ProcessLookupError, OSError):
+        return
+
+    # Grace period for processes in the group to exit cleanly
+    try:
+        await asyncio.wait_for(proc.wait(), timeout=timeout_sec)
+        return
+    except (asyncio.TimeoutError, Exception):
+        pass
+
+    # Step 2: Escalate to SIGKILL if any processes remain alive
+    try:
+        if pgid is not None:
+            os.killpg(pgid, signal.SIGKILL)
+        else:
+            proc.kill()
+    except (ProcessLookupError, OSError):
+        pass
+
+    try:
+        await asyncio.wait_for(proc.wait(), timeout=1.0)
+    except Exception:
+        pass
 
 @dataclass
 class KaneExecutionResult:
@@ -66,7 +111,8 @@ class KaneService:
         headless: bool = True,
         session_name: Optional[str] = None,
         timeout: int = 120,
-        event_callback = None
+        event_callback = None,
+        on_process_spawned: Optional[Callable] = None
     ) -> KaneExecutionResult:
         """
         Executes Kane CLI asynchronously, streaming NDJSON output and parsing events.
@@ -113,15 +159,25 @@ class KaneService:
         proc: Optional[asyncio.subprocess.Process] = None
 
         try:
-            # Spawn subprocess
+            # Spawn subprocess with dedicated process group for clean tree termination
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 stdin=asyncio.subprocess.DEVNULL,
                 env=env,
-                cwd=str(settings.WORKSPACE_DIR)
+                cwd=str(settings.WORKSPACE_DIR),
+                start_new_session=True
             )
+
+            if on_process_spawned:
+                try:
+                    if inspect.iscoroutinefunction(on_process_spawned):
+                        await on_process_spawned(proc)
+                    else:
+                        on_process_spawned(proc)
+                except Exception as cb_err:
+                    logger.warning(f"Error in on_process_spawned callback: {cb_err}")
 
             stdout_lines: List[str] = []
             stderr_lines: List[str] = []
@@ -174,13 +230,7 @@ class KaneService:
                 error_msg = f"Process timed out after {timeout} seconds"
                 final_status = "incomplete"
                 if proc:
-                    try:
-                        proc.terminate()
-                        await asyncio.sleep(1)
-                        if proc.returncode is None:
-                            proc.kill()
-                    except Exception as kill_err:
-                        logger.warning(f"Error terminating timed out process: {kill_err}")
+                    await terminate_process_tree(proc)
                 exit_code = -1
 
             # Write raw stdout and stderr logs for auditability
@@ -210,13 +260,7 @@ class KaneService:
             final_status = "cancelled"
             error_msg = "Run was cancelled"
             if proc:
-                try:
-                    proc.terminate()
-                    await asyncio.sleep(0.5)
-                    if proc.returncode is None:
-                        proc.kill()
-                except Exception:
-                    pass
+                await terminate_process_tree(proc)
             raise
 
         except Exception as e:
@@ -224,10 +268,7 @@ class KaneService:
             final_status = "error"
             error_msg = str(e)
             if proc and proc.returncode is None:
-                try:
-                    proc.kill()
-                except Exception:
-                    pass
+                await terminate_process_tree(proc)
 
         return KaneExecutionResult(
             run_id=run_id,

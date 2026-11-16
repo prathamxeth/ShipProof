@@ -14,7 +14,7 @@ from backend.app.models.entities import (
     VerificationEventEntity
 )
 from backend.app.services.kane_parser import NormalizedEvent, KaneParser
-from backend.app.services.kane_service import KaneService, KaneExecutionResult
+from backend.app.services.kane_service import KaneService, KaneExecutionResult, terminate_process_tree
 from backend.app.services.evidence_service import EvidenceService
 
 logger = get_logger("runner_service")
@@ -27,10 +27,12 @@ class RunnerService:
     - Incremental database event persistence
     - Live SSE broadcasting to connected clients
     - Evidence extraction & manifest generation
+    - Process tree management and clean termination
     """
 
     def __init__(self):
         self._active_tasks: Dict[str, asyncio.Task] = {}
+        self._active_processes: Dict[str, asyncio.subprocess.Process] = {}
         self._event_subscribers: Dict[str, List[asyncio.Queue]] = {}
         self.evidence_service = EvidenceService()
 
@@ -58,8 +60,14 @@ class RunnerService:
 
     async def cancel_run(self, run_id: str) -> bool:
         """
-        Cancels an active running task.
+        Cancels an active running task and cleanly terminates its entire process tree.
         """
+        # 1. Kill subprocess tree immediately if running
+        proc = self._active_processes.get(run_id)
+        if proc:
+            logger.info(f"Terminating subprocess tree for run {run_id}")
+            await terminate_process_tree(proc)
+
         task = self._active_tasks.get(run_id)
         if task and not task.done():
             logger.info(f"Cancelling active execution for run {run_id}")
@@ -87,6 +95,18 @@ class RunnerService:
             })
             return True
         return False
+
+    async def terminate_all_processes(self):
+        """
+        Terminates all active subprocess trees on backend shutdown.
+        """
+        for run_id, proc in list(self._active_processes.items()):
+            logger.info(f"Terminating active process tree for run {run_id}")
+            try:
+                await terminate_process_tree(proc)
+            except Exception as e:
+                logger.warning(f"Error terminating process tree for run {run_id}: {e}")
+        self._active_processes.clear()
 
     def enqueue_run(
         self,
@@ -128,16 +148,24 @@ class RunnerService:
             )
             await session.commit()
 
-        # Incremental event callback to persist and broadcast events
+        # Incremental event callback to persist and broadcast events with monotonic sequences
+        seq_counter = 0
+
         async def on_event(event: NormalizedEvent):
+            nonlocal seq_counter
+            seq_counter += 1
+            event_dict = event.to_dict()
+            event_dict["event_seq"] = seq_counter
+
             # Broadcast to SSE subscribers immediately
-            await self._broadcast_event(run_id, event.to_dict())
+            await self._broadcast_event(run_id, event_dict)
 
             # Persist to database
             async with AsyncSessionLocal() as session:
                 # Save event entity
                 event_entity = VerificationEventEntity(
                     run_id=run_id,
+                    event_seq=seq_counter,
                     event_type=event.event_type,
                     step_number=event.step_number,
                     status=event.status,
@@ -190,7 +218,8 @@ class RunnerService:
                 headless=headless,
                 session_name=session_slug,
                 timeout=timeout,
-                event_callback=on_event
+                event_callback=on_event,
+                on_process_spawned=lambda proc: self._active_processes.update({run_id: proc})
             )
         except asyncio.CancelledError:
             logger.warning(f"Run {run_id} cancelled during subprocess execution")
@@ -218,6 +247,8 @@ class RunnerService:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
             return
+        finally:
+            self._active_processes.pop(run_id, None)
 
         # 3. Post-execution evidence discovery & packaging
         evidence_pack_path = None
