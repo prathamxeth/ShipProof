@@ -42,6 +42,10 @@ class Settings(BaseModel):
     # Server Configuration
     HOST: str = Field(default=os.getenv("HOST", "127.0.0.1"))
     PORT: int = Field(default=int(os.getenv("PORT", "8000")))
+    ENVIRONMENT: str = Field(default=os.getenv("ENVIRONMENT", "development"))
+    ALLOW_LOCAL_TARGETS: bool = Field(
+        default=os.getenv("ALLOW_LOCAL_TARGETS", "true").lower() == "true"
+    )
     CORS_ORIGINS: list[str] = Field(default=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",

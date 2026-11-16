@@ -7,15 +7,17 @@ from backend.app.core.errors import ResourceNotFoundException, ShipProofExceptio
 from backend.app.models.entities import ProjectEntity
 from backend.app.models.schemas import ProjectCreate, ProjectResponse
 from backend.app.core.logging import get_logger
+from backend.app.core.url_validator import validate_target_url
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 logger = get_logger("api.projects")
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED, summary="Create a new target project")
 async def create_project(payload: ProjectCreate, db: AsyncSession = Depends(get_db)):
+    validated_url = validate_target_url(payload.target_url)
     project = ProjectEntity(
         name=payload.name,
-        target_url=str(payload.target_url),
+        target_url=validated_url,
         repo_path=payload.repo_path,
         framework=payload.framework or "Next.js",
         description=payload.description

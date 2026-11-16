@@ -195,6 +195,29 @@ class RunnerService:
         except asyncio.CancelledError:
             logger.warning(f"Run {run_id} cancelled during subprocess execution")
             return
+        except Exception as err:
+            logger.error(f"Execution error running Kane for run {run_id}: {err}")
+            async with AsyncSessionLocal() as session:
+                await session.execute(
+                    update(VerificationRunEntity)
+                    .where(VerificationRunEntity.id == run_id)
+                    .values(
+                        status="error",
+                        exit_code=-1,
+                        failure_reason=f"Execution error: {str(err)}",
+                        completed_at=datetime.now(timezone.utc),
+                        updated_at=datetime.now(timezone.utc)
+                    )
+                )
+                await session.commit()
+            await self._broadcast_event(run_id, {
+                "event_type": "completed",
+                "status": "error",
+                "exit_code": -1,
+                "description": f"Verification failed with execution error: {str(err)}",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            return
 
         # 3. Post-execution evidence discovery & packaging
         evidence_pack_path = None

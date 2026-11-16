@@ -29,6 +29,7 @@ from backend.app.models.schemas import (
 from backend.app.core.logging import get_logger
 from backend.app.services.runner_service import runner_service
 from backend.app.services.evidence_service import PathTraversalError
+from backend.app.core.url_validator import validate_target_url
 
 router = APIRouter(prefix="/runs", tags=["Verification Runs"])
 logger = get_logger("api.runs")
@@ -48,6 +49,9 @@ async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends
 
     if not target_url:
         raise ShipProofException("Either 'target_url' or a valid 'project_id' with target_url must be provided", status_code=422)
+
+    # Validate target URL against dangerous schemes, cloud metadata and SSRF risks
+    target_url = validate_target_url(target_url)
 
     # Create run entity in QUEUED state
     run = VerificationRunEntity(
@@ -289,9 +293,9 @@ async def get_evidence_file(run_id: str, file_path: str):
     if not evidence_dir.exists():
         raise HTTPException(status_code=404, detail="Evidence directory not found for this run")
 
-    # Path traversal defense
+    # Path traversal defense: target must strictly reside within evidence_dir hierarchy
     target_file = (evidence_dir / file_path).resolve()
-    if not str(target_file).startswith(str(evidence_dir)):
+    if target_file != evidence_dir and evidence_dir not in target_file.parents:
         raise HTTPException(status_code=403, detail="Access denied: path traversal attempt detected")
 
     if not target_file.exists() or not target_file.is_file():

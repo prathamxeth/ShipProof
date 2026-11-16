@@ -2,10 +2,11 @@ from typing import Optional, List
 from pathlib import Path
 import json
 import asyncio
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query, Request, status, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from sqlalchemy.orm import selectinload
 
 from backend.app.core.config import settings
@@ -23,6 +24,7 @@ from backend.app.models.schemas import (
 )
 from backend.app.core.logging import get_logger
 from backend.app.services.repair_orchestrator import repair_orchestrator
+from backend.app.services.git_service import GitService
 
 router = APIRouter(prefix="/repairs", tags=["Autonomous Repairs"])
 logger = get_logger("api.repairs")
@@ -163,8 +165,43 @@ async def approve_repair(repair_id: str, payload: RepairApproveRequest = None, d
     if repair.status not in ("AWAITING_APPROVAL", "AGENT_RESPONSE_RECEIVED", "PROPOSED", "AWAITING_AGENT"):
         raise ShipProofException(f"Repair in status '{repair.status}' cannot be approved", status_code=400)
 
+    # 1. Concurrency guard: reject if repair is already being applied or actively running
+    if repair_id in repair_orchestrator._active_repairs and not repair_orchestrator._active_repairs[repair_id].done():
+        raise ShipProofException("Repair session is currently already being processed", status_code=409)
+
+    # 2. Workspace modifications check: require that modifications actually exist
+    has_patch = bool(repair.patch_diff and repair.patch_diff.strip())
+    ws_status = GitService.inspect_status(settings.WORKSPACE_DIR)
+    if not has_patch and ws_status.is_clean:
+        raise ShipProofException("Cannot approve repair: no workspace modifications have been detected to test", status_code=400)
+
+    # 3. Atomic database transition to APPLYING
+    update_stmt = (
+        update(RepairRecordEntity)
+        .where(
+            RepairRecordEntity.id == repair_id,
+            RepairRecordEntity.status.in_(("AWAITING_APPROVAL", "AGENT_RESPONSE_RECEIVED", "PROPOSED", "AWAITING_AGENT"))
+        )
+        .values(status="APPLYING", updated_at=datetime.now(timezone.utc))
+    )
+    update_res = await db.execute(update_stmt)
+    await db.commit()
+    if update_res.rowcount == 0:
+        raise ShipProofException(f"Repair cannot be approved (current status: '{repair.status}')", status_code=400)
+
     rationale = payload.rationale if payload and payload.rationale else "Approved by user"
-    await repair_orchestrator.apply_and_retest(repair_id, rationale=rationale)
+    try:
+        await repair_orchestrator.apply_and_retest(repair_id, rationale=rationale)
+    except Exception as e:
+        logger.error(f"Failed to launch apply_and_retest for repair {repair_id}: {e}")
+        # Revert status on launch failure
+        await db.execute(
+            update(RepairRecordEntity)
+            .where(RepairRecordEntity.id == repair_id)
+            .values(status=repair.status, updated_at=datetime.now(timezone.utc))
+        )
+        await db.commit()
+        raise ShipProofException(f"Failed to initiate repair execution: {str(e)}", status_code=500)
 
     return RepairApproveResponse(
         repair_id=repair_id,

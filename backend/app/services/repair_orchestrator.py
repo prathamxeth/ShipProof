@@ -126,10 +126,15 @@ class RepairOrchestrator:
             if attempt_num > 5:
                 raise ValueError(f"Run {run_id} has exceeded maximum repair attempts (5)")
 
-            # Check if an existing repair for this run is currently active
-            active_rep = next((r for r in run.repairs if r.status in ("CREATED", "ANALYZING", "PROPOSED", "APPLYING", "VALIDATING", "RETESTING")), None)
+            # Check if an existing repair for this run is currently active (in any non-terminal state)
+            non_terminal_statuses = (
+                "CREATED", "JOB_PUBLISHED", "ANALYZING", "PROPOSED",
+                "AWAITING_AGENT", "AGENT_RESPONSE_RECEIVED", "AWAITING_APPROVAL",
+                "APPLYING", "VALIDATING", "RETESTING"
+            )
+            active_rep = next((r for r in run.repairs if r.status in non_terminal_statuses), None)
             if active_rep:
-                raise ValueError(f"A repair is already in progress for run {run_id} (Repair ID: {active_rep.id})")
+                raise ValueError(f"A repair is already in progress for run {run_id} (Repair ID: {active_rep.id}, status: {active_rep.status})")
 
             # Build repair packet
             packet = await self.packet_service.build_packet(
@@ -259,6 +264,11 @@ class RepairOrchestrator:
         """
         Executes the applying, validating, and retesting phases once the fix is staged.
         """
+        existing_task = self._active_repairs.get(repair_id)
+        current_task = asyncio.current_task()
+        if existing_task and existing_task != current_task and not existing_task.done():
+            raise ValueError(f"Repair {repair_id} is already actively being processed")
+
         task = asyncio.create_task(self._execute_apply_and_retest(repair_id, rationale))
         self._active_repairs[repair_id] = task
         task.add_done_callback(lambda _: self._active_repairs.pop(repair_id, None))
