@@ -61,6 +61,8 @@ class Settings(BaseModel):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ])
+    TRUSTED_PROXIES: list[str] = Field(default=["127.0.0.1", "::1"])
+    MAX_CONCURRENT_RUNS: int = Field(default=int(os.getenv("MAX_CONCURRENT_RUNS", "2")))
 
     @model_validator(mode="after")
     def validate_deployment_security(self):

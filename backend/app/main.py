@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from backend.app.core.config import settings
@@ -55,6 +56,15 @@ async def recover_interrupted_states():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}...")
+    
+    # Enforce secure directory permissions on sensitive storage paths
+    try:
+        os.chmod(settings.DATA_DIR, 0o700)
+        os.chmod(settings.EVIDENCE_DIR, 0o700)
+        os.chmod(settings.BACKUP_DIR, 0o700)
+    except Exception as perm_err:
+        logger.warning(f"Directory permissions setup warning: {perm_err}")
+
     await init_db()
     logger.info("Database initialized.")
     await recover_interrupted_states()
@@ -80,6 +90,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request payload size limiter (10 MB bound)
+@app.middleware("http")
+async def limit_request_size(request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > 10 * 1024 * 1024:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Payload too large: request body exceeds 10MB limit."}
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
 
 # Exception handlers
 app.add_exception_handler(ShipProofException, shipproof_exception_handler)

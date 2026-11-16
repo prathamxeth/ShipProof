@@ -112,7 +112,14 @@ class EvidenceService:
         if not pack_path.exists() or not pack_path.is_file():
             raise FileNotFoundError(f"Evidence pack not found: {pack_path}")
 
+        if not run_id or not re.match(r"^[a-zA-Z0-9_\-]+$", run_id):
+            raise PathTraversalError(f"Invalid run_id for evidence extraction: '{run_id}'")
+
         dest_dir = (self.base_evidence_dir / run_id).resolve()
+        base_dir = self.base_evidence_dir.resolve()
+        if base_dir not in dest_dir.parents or dest_dir == base_dir:
+            raise PathTraversalError(f"Evidence destination directory escapes base directory: {dest_dir}")
+
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_str = str(dest_dir)
 

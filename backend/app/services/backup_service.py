@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from datetime import datetime, timezone
 from backend.app.core.config import settings
 from backend.app.core.logging import get_logger
@@ -22,12 +22,38 @@ class SQLiteBackupService:
         """
         Resolves the actual SQLite database file on disk.
         """
-        # Parse from DATABASE_URL e.g. sqlite+aiosqlite:///path/to/db
         db_url = settings.DATABASE_URL
         if "sqlite" in db_url:
             path_str = db_url.split("///")[-1]
             return Path(path_str).resolve()
         return (settings.DATA_DIR / "shipproof.db").resolve()
+
+    @classmethod
+    def prune_old_backups(cls, keep_count: int = 10) -> int:
+        """
+        Removes older backups to prevent storage exhaustion.
+        Keeps the latest `keep_count` backup files.
+        """
+        backup_dir = settings.BACKUP_DIR.resolve()
+        if not backup_dir.exists():
+            return 0
+
+        backups = sorted(
+            list(backup_dir.glob("*.db")),
+            key=lambda x: x.stat().st_mtime,
+            reverse=True
+        )
+
+        pruned = 0
+        if len(backups) > keep_count:
+            for old in backups[keep_count:]:
+                try:
+                    old.unlink()
+                    pruned += 1
+                    logger.info(f"Pruned old backup file: {old.name}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete old backup {old}: {e}")
+        return pruned
 
     @classmethod
     def perform_online_backup(
@@ -38,6 +64,7 @@ class SQLiteBackupService:
         """
         Executes a hot online SQLite backup using sqlite3.Connection.backup().
         Safe under concurrent writes in WAL mode.
+        Validates disk space and writes atomically via temporary file.
         """
         src = (src_path or cls.get_live_db_path()).resolve()
         if not src.exists():
@@ -51,36 +78,59 @@ class SQLiteBackupService:
 
         dest.parent.mkdir(parents=True, exist_ok=True)
 
+        # 1. Disk space verification
+        src_size = src.stat().st_size
+        free_bytes = shutil.disk_usage(dest.parent).free
+        required_space = max(src_size * 2, 20 * 1024 * 1024)  # At least 2x source size or 20MB
+        if free_bytes < required_space:
+            raise RuntimeError(
+                f"Insufficient disk space for backup: {free_bytes} bytes available, {required_space} required."
+            )
+
         logger.info(f"Starting online SQLite backup from {src} to {dest}...")
         start_time = time.time()
 
-        # Connect with read-only URI mode to prevent any locking interference
+        # 2. Write to temporary file for atomic generation
+        tmp_dest = dest.with_name(f"{dest.stem}_temp_{int(time.time())}.tmp")
+
         src_uri = f"file:{src}?mode=ro"
         src_conn = sqlite3.connect(src_uri, uri=True)
-        dest_conn = sqlite3.connect(str(dest))
+        dest_conn = sqlite3.connect(str(tmp_dest))
 
         try:
             with dest_conn:
                 src_conn.backup(dest_conn, pages=100)
+        except Exception as backup_err:
+            if tmp_dest.exists():
+                tmp_dest.unlink()
+            raise RuntimeError(f"Online backup interrupted or failed: {backup_err}")
         finally:
             src_conn.close()
             dest_conn.close()
+
+        # 3. Immediately verify integrity before committing destination
+        is_valid, msg = cls.verify_backup_integrity(tmp_dest)
+        if not is_valid:
+            if tmp_dest.exists():
+                tmp_dest.unlink()
+            raise RuntimeError(f"Backup integrity check failed: {msg}")
+
+        # Atomic replacement
+        tmp_dest.replace(dest)
 
         elapsed = time.time() - start_time
         file_size = dest.stat().st_size
         logger.info(f"Online backup completed in {elapsed:.2f}s ({file_size} bytes): {dest}")
 
-        # Immediately verify integrity of the generated backup
-        is_valid, msg = cls.verify_backup_integrity(dest)
-        if not is_valid:
-            raise RuntimeError(f"Backup integrity check failed: {msg}")
+        # 4. Prune older backups
+        cls.prune_old_backups(keep_count=10)
 
         return dest
 
     @classmethod
     def verify_backup_integrity(cls, backup_path: Path) -> Tuple[bool, str]:
         """
-        Runs PRAGMA integrity_check on the SQLite backup file.
+        Runs PRAGMA integrity_check and PRAGMA foreign_key_check on the SQLite backup file.
         """
         resolved = backup_path.resolve()
         if not resolved.exists():
@@ -89,13 +139,21 @@ class SQLiteBackupService:
         conn = sqlite3.connect(str(resolved))
         try:
             cursor = conn.cursor()
+            
+            # Structural integrity check
             cursor.execute("PRAGMA integrity_check;")
             rows = cursor.fetchall()
-            if rows and rows[0][0] == "ok":
-                return True, "ok"
-            else:
+            if not rows or rows[0][0] != "ok":
                 errors = "; ".join([r[0] for r in rows])
-                return False, errors
+                return False, f"Integrity check failed: {errors}"
+
+            # Foreign key integrity check
+            cursor.execute("PRAGMA foreign_key_check;")
+            fk_violations = cursor.fetchall()
+            if fk_violations:
+                return False, f"Foreign key check failed: {len(fk_violations)} violations detected."
+
+            return True, "ok"
         except Exception as e:
             return False, str(e)
         finally:
@@ -114,8 +172,9 @@ class SQLiteBackupService:
         if not is_valid:
             raise ValueError(f"Cannot restore corrupted backup: {msg}")
 
+        tmp_target = target.with_name(f"{target.stem}_restoring_{int(time.time())}.tmp")
         src_conn = sqlite3.connect(f"file:{src}?mode=ro", uri=True)
-        dest_conn = sqlite3.connect(str(target))
+        dest_conn = sqlite3.connect(str(tmp_target))
         try:
             with dest_conn:
                 src_conn.backup(dest_conn, pages=100)
@@ -123,10 +182,13 @@ class SQLiteBackupService:
             src_conn.close()
             dest_conn.close()
 
-        is_target_valid, target_msg = cls.verify_backup_integrity(target)
+        is_target_valid, target_msg = cls.verify_backup_integrity(tmp_target)
         if not is_target_valid:
+            if tmp_target.exists():
+                tmp_target.unlink()
             raise RuntimeError(f"Restored database integrity check failed: {target_msg}")
 
+        tmp_target.replace(target)
         return target
 
     @classmethod
@@ -136,8 +198,8 @@ class SQLiteBackupService:
         source_path: Optional[Path] = None
     ) -> Dict[str, Any]:
         """
-        Compares restored database records against live database
-        and verifies that disk evidence packs referenced by runs exist.
+        Compares restored database records against live database,
+        verifies foreign-key integrity, and verifies referenced disk evidence packs.
         """
         src = (source_path or cls.get_live_db_path()).resolve()
         restored = restored_path.resolve()
@@ -196,16 +258,22 @@ class SQLiteBackupService:
             for run_id, pack_path in runs_with_evidence:
                 if pack_path:
                     p = Path(pack_path)
-                    # Check either zip pack or extracted folder
                     extracted_dir = settings.EVIDENCE_DIR / run_id
                     if p.exists() or extracted_dir.exists():
                         verified_evidence_packs += 1
                     else:
                         missing_evidence_packs.append({"run_id": run_id, "expected_path": pack_path})
 
+            # Foreign key check
+            rest_cur.execute("PRAGMA foreign_key_check;")
+            fk_errors = rest_cur.fetchall()
+
+            status_verdict = "PASS" if (counts_match and len(missing_evidence_packs) == 0 and len(fk_errors) == 0) else "PARTIAL"
+
             return {
-                "status": "PASS" if (counts_match and len(missing_evidence_packs) == 0) else "PARTIAL",
+                "status": status_verdict,
                 "counts_match": counts_match,
+                "foreign_key_violations": len(fk_errors),
                 "table_counts": table_counts,
                 "evidence_check": {
                     "total_referenced_packs": len(runs_with_evidence),

@@ -18,7 +18,7 @@ async def get_health(db: AsyncSession = Depends(get_db)):
         await db.execute(text("SELECT 1"))
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
-        db_status = f"unhealthy: {str(e)}"
+        db_status = "unhealthy: database connectivity failed"
 
     kane_exists = os.path.exists(settings.KANE_CLI_PATH) and os.access(settings.KANE_CLI_PATH, os.X_OK)
     agy_exists = os.path.exists(settings.AGY_CLI_PATH) and os.access(settings.AGY_CLI_PATH, os.X_OK)

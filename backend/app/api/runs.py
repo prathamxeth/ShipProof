@@ -2,6 +2,7 @@ from typing import Optional, List
 from pathlib import Path
 import json
 import asyncio
+import re
 from fastapi import APIRouter, Depends, Query, Request, status, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,7 +81,7 @@ async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends
 
     return run
 
-@router.get("", response_model=PaginatedRunsResponse, summary="List verification runs")
+@router.get("", response_model=PaginatedRunsResponse, summary="List verification runs", dependencies=[Depends(verify_auth)])
 async def list_verification_runs(
     project_id: Optional[str] = Query(None, description="Filter runs by project ID"),
     status: Optional[str] = Query(None, description="Filter runs by status"),
@@ -112,7 +113,7 @@ async def list_verification_runs(
         offset=offset
     )
 
-@router.get("/{run_id}", response_model=RunDetailResponse, summary="Get full verification run details and steps")
+@router.get("/{run_id}", response_model=RunDetailResponse, summary="Get full verification run details and steps", dependencies=[Depends(verify_auth)])
 async def get_verification_run(run_id: str, db: AsyncSession = Depends(get_db)):
     query = (
         select(VerificationRunEntity)
@@ -183,39 +184,40 @@ async def get_run_events(
     if wants_sse:
         async def event_generator():
             last_seq_sent = effective_last_id or 0
-
-            # 1. First replay existing historical events (filtering by sequence if reconnecting)
-            hist_query = (
-                select(VerificationEventEntity)
-                .where(VerificationEventEntity.run_id == run_id)
-            )
-            if effective_last_id is not None:
-                hist_query = hist_query.where(VerificationEventEntity.event_seq > effective_last_id)
             
-            hist_query = hist_query.order_by(VerificationEventEntity.event_seq.asc())
-            hist_res = await db.execute(hist_query)
-            
-            for ev in hist_res.scalars().all():
-                seq = ev.event_seq or (last_seq_sent + 1)
-                last_seq_sent = max(last_seq_sent, seq)
-                payload = {
-                    "event_seq": seq,
-                    "event_type": ev.event_type,
-                    "step_number": ev.step_number,
-                    "status": ev.status,
-                    "description": ev.description,
-                    "timestamp": ev.created_at.isoformat()
-                }
-                yield f"id: {seq}\ndata: {json.dumps(payload)}\n\n"
-
-            # 2. If run already finalized, send stream termination
-            if run.status in ("passed", "failed", "error", "cancelled", "incomplete"):
-                yield f"data: {json.dumps({'event_type': 'stream_end', 'status': run.status})}\n\n"
-                return
-
-            # 3. Stream real-time events from subscriber queue with deduplication
+            # Subscribe to live queue FIRST to prevent any race condition event loss during history query
             queue = runner_service.subscribe(run_id)
             try:
+                # 1. First replay existing historical events (filtering by sequence if reconnecting)
+                hist_query = (
+                    select(VerificationEventEntity)
+                    .where(VerificationEventEntity.run_id == run_id)
+                )
+                if effective_last_id is not None:
+                    hist_query = hist_query.where(VerificationEventEntity.event_seq > effective_last_id)
+                
+                hist_query = hist_query.order_by(VerificationEventEntity.event_seq.asc())
+                hist_res = await db.execute(hist_query)
+                
+                for ev in hist_res.scalars().all():
+                    seq = ev.event_seq or (last_seq_sent + 1)
+                    last_seq_sent = max(last_seq_sent, seq)
+                    payload = {
+                        "event_seq": seq,
+                        "event_type": ev.event_type,
+                        "step_number": ev.step_number,
+                        "status": ev.status,
+                        "description": ev.description,
+                        "timestamp": ev.created_at.isoformat()
+                    }
+                    yield f"id: {seq}\ndata: {json.dumps(payload)}\n\n"
+
+                # 2. If run already finalized, send stream termination
+                if run.status in ("passed", "failed", "error", "cancelled", "incomplete"):
+                    yield f"data: {json.dumps({'event_type': 'stream_end', 'status': run.status})}\n\n"
+                    return
+
+                # 3. Stream real-time events from subscriber queue with strict deduplication
                 while True:
                     try:
                         event_data = await asyncio.wait_for(queue.get(), timeout=15.0)
@@ -277,14 +279,26 @@ async def get_run_events(
             ))
         return result
 
-@router.get("/{run_id}/evidence", response_model=EvidenceResponse, summary="Get evidence pack metadata and artifacts")
+def validate_safe_run_id(run_id: str) -> Path:
+    """
+    Validates run_id against illegal path characters and ensures containment within EVIDENCE_DIR.
+    """
+    if not run_id or not re.match(r"^[a-zA-Z0-9_\-]+$", run_id):
+        raise HTTPException(status_code=400, detail="Invalid run_id format: contains disallowed characters")
+    evidence_dir = (settings.EVIDENCE_DIR / run_id).resolve()
+    base_dir = settings.EVIDENCE_DIR.resolve()
+    if base_dir not in evidence_dir.parents or evidence_dir == base_dir:
+        raise HTTPException(status_code=403, detail="Access denied: path traversal attempt in run_id")
+    return evidence_dir
+
+@router.get("/{run_id}/evidence", response_model=EvidenceResponse, summary="Get evidence pack metadata and artifacts", dependencies=[Depends(verify_auth)])
 async def get_run_evidence(run_id: str, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(VerificationRunEntity).where(VerificationRunEntity.id == run_id))
     run = res.scalar_one_or_none()
     if not run:
         raise ResourceNotFoundException("VerificationRun", run_id)
 
-    evidence_dir = (settings.EVIDENCE_DIR / run_id).resolve()
+    evidence_dir = validate_safe_run_id(run_id)
     if not evidence_dir.exists() or not evidence_dir.is_dir():
         return EvidenceResponse(
             run_id=run_id,
@@ -322,7 +336,7 @@ async def get_evidence_file(run_id: str, file_path: str):
     """
     Safely serves an extracted evidence artifact while strictly enforcing path containment.
     """
-    evidence_dir = (settings.EVIDENCE_DIR / run_id).resolve()
+    evidence_dir = validate_safe_run_id(run_id)
     if not evidence_dir.exists():
         raise HTTPException(status_code=404, detail="Evidence directory not found for this run")
 

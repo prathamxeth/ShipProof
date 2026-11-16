@@ -8,7 +8,7 @@ from backend.app.models.entities import ProjectEntity
 from backend.app.models.schemas import ProjectCreate, ProjectResponse
 from backend.app.core.logging import get_logger
 from backend.app.core.url_validator import validate_target_url
-from backend.app.core.auth import verify_protected_action
+from backend.app.core.auth import verify_auth, verify_protected_action
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 logger = get_logger("api.projects")
@@ -29,12 +29,12 @@ async def create_project(payload: ProjectCreate, db: AsyncSession = Depends(get_
     logger.info(f"Created project '{project.name}' (ID: {project.id})")
     return project
 
-@router.get("", response_model=List[ProjectResponse], summary="List all projects")
+@router.get("", response_model=List[ProjectResponse], summary="List all projects", dependencies=[Depends(verify_auth)])
 async def list_projects(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProjectEntity).order_by(ProjectEntity.created_at.desc()))
     return result.scalars().all()
 
-@router.get("/{project_id}", response_model=ProjectResponse, summary="Get project by ID")
+@router.get("/{project_id}", response_model=ProjectResponse, summary="Get project by ID", dependencies=[Depends(verify_auth)])
 async def get_project(project_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ProjectEntity).where(ProjectEntity.id == project_id))
     project = result.scalar_one_or_none()

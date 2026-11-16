@@ -8,11 +8,12 @@ from backend.app.core.database import get_db
 from backend.app.models.entities import VerificationRunEntity, RepairRecordEntity, ProjectEntity
 from backend.app.models.schemas import OverviewStatsResponse, RunSummaryResponse, RepairSummaryResponse
 from backend.app.core.logging import get_logger
+from backend.app.core.auth import verify_auth
 
 router = APIRouter(prefix="/overview", tags=["Overview"])
 logger = get_logger("api.overview")
 
-@router.get("", response_model=OverviewStatsResponse, summary="Get aggregate system overview statistics")
+@router.get("", response_model=OverviewStatsResponse, summary="Get aggregate system overview statistics", dependencies=[Depends(verify_auth)])
 async def get_overview_stats(db: AsyncSession = Depends(get_db)):
     # 1. Total runs count
     total_runs_q = await db.execute(select(func.count()).select_from(VerificationRunEntity))

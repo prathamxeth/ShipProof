@@ -49,7 +49,7 @@ async def create_repair(payload: RepairCreate, db: AsyncSession = Depends(get_db
     except ValueError as e:
         raise ShipProofException(str(e), status_code=400)
 
-@router.get("", response_model=List[RepairSummaryResponse], summary="List all repair jobs")
+@router.get("", response_model=List[RepairSummaryResponse], summary="List all repair jobs", dependencies=[Depends(verify_auth)])
 async def list_repairs(
     run_id: Optional[str] = Query(None, description="Filter by run ID"),
     status: Optional[str] = Query(None, description="Filter by repair status"),
@@ -65,7 +65,7 @@ async def list_repairs(
     res = await db.execute(query)
     return res.scalars().all()
 
-@router.get("/{repair_id}", response_model=RepairDetailResponse, summary="Get repair job details")
+@router.get("/{repair_id}", response_model=RepairDetailResponse, summary="Get repair job details", dependencies=[Depends(verify_auth)])
 async def get_repair(repair_id: str, db: AsyncSession = Depends(get_db)):
     query = (
         select(RepairRecordEntity)
