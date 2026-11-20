@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090a0f;
+  --foreground: #f4f4f7;
+  --card: #111219;
+  --card-foreground: #f4f4f7;
+  --popover: #111219;
+  --popover-foreground: #f4f4f7;
+  --primary: #17171c;
+  --primary-foreground: #ffffff;
+  --secondary: #181923;
+  --secondary-foreground: #e2e4ea;
+  --muted: #1c1d28;
+  --muted-foreground: #8e90a2;
+  --accent: #1863dc;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #1863dc;
+  --radius: 0.75rem;
+
+  /* Cohere Enterprise AI Design Tokens */
+  --cohere-black: #000000;
+  --cohere-primary: #17171c;
+  --cohere-navy: #071829;
+  --cohere-deep-green: #003c33;
+  --cohere-stone: #eeece7;
+  --cohere-action-blue: #1863dc;
+  --cohere-coral: #ff7759;
+  --cohere-hairline: rgba(255, 255, 255, 0.08);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  background-color: #090a0f;
+  color: #f4f4f7;
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Custom crisp developer scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e202e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2e3248;
+}
+
+/* Remove ugly outline halos */
+*:focus,
+*:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}

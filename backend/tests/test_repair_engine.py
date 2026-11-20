@@ -233,7 +233,8 @@ async def test_retest_passed_marks_verified(client: AsyncClient):
     )
 
     with patch.object(KaneService, "run_kane", side_effect=mock_run_kane), \
-         patch.object(AgentService, "generate_diagnosis", return_value=mock_proposal):
+         patch.object(AgentService, "generate_diagnosis", return_value=mock_proposal), \
+         patch.object(repair_orchestrator, "detect_workspace_changes", return_value={"modified": True, "files": ["templates/cart.html"], "diff": "@@ -1 +1 @@"}):
         # 2. Create repair
         rep_res = await client.post("/api/repairs", json={"run_id": run_id, "auto_approve": True})
         repair_id = rep_res.json()["id"]
@@ -312,7 +313,8 @@ async def test_retest_failed_marks_unresolved_and_cannot_produce_verified(client
     )
 
     with patch.object(KaneService, "run_kane", side_effect=mock_run_kane_fail), \
-         patch.object(AgentService, "generate_diagnosis", return_value=mock_proposal):
+         patch.object(AgentService, "generate_diagnosis", return_value=mock_proposal), \
+         patch.object(repair_orchestrator, "detect_workspace_changes", return_value={"modified": True, "files": ["templates/cart.html"], "diff": "@@ -1 +1 @@"}):
         # 2. Create repair with auto_approve
         rep_res = await client.post("/api/repairs", json={"run_id": run_id, "auto_approve": True})
         repair_id = rep_res.json()["id"]
