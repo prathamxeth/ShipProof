@@ -1,49 +1,85 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card" style="max-width: 800px; margin: 0 auto;" id="cart-container">
-  <h1 id="cart-header" style="font-size: 1.75rem; margin-bottom: 1.5rem;">Your Shopping Cart</h1>
-
-  {% if items %}
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;" id="cart-table">
-      <thead>
-        <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted); font-size: 0.85rem;">
-          <th style="padding: 0.75rem 0;">Item</th>
-          <th style="padding: 0.75rem 0;">Price</th>
-          <th style="padding: 0.75rem 0; text-align: center;">Qty</th>
-          <th style="padding: 0.75rem 0; text-align: right;">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-          <tr style="border-bottom: 1px solid var(--border);" id="cart-row-{{ item.product.id }}">
-            <td style="padding: 1rem 0;">
-              <span style="font-size: 1.25rem; margin-right: 0.5rem;">{{ item.product.icon }}</span>
-              <strong id="cart-item-name-{{ item.product.id }}">{{ item.product.name }}</strong>
-            </td>
-            <td style="padding: 1rem 0;">${{ "%.2f"|format(item.product.price) }}</td>
-            <td style="padding: 1rem 0; text-align: center;">
-              <form action="/cart/update" method="POST" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" style="width: 60px; padding: 0.3rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; text-align: center;" id="qty-input-{{ item.product.id }}">
-                <button type="submit" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: var(--border); color: var(--text);" id="update-btn-{{ item.product.id }}">Update</button>
-              </form>
-            </td>
-            <td style="padding: 1rem 0; text-align: right; font-weight: 700; color: #60a5fa;" id="item-total-{{ item.product.id }}">
-              ${{ "%.2f"|format(item.total) }}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid var(--border); padding-top: 1.5rem;">
+<div class="card" style="max-width: 880px; margin: 1rem auto; padding: 2.25rem;" id="cart-container">
+  <div class="card-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.25rem;">
       <div>
-        <span style="color: var(--text-muted); font-size: 1rem;">Subtotal:</span>
-        <span id="cart-subtotal" style="font-size: 1.75rem; font-weight: 800; color: #60a5fa; margin-left: 0.5rem;">${{ "%.2f"|format(subtotal) }}</span>
+        <h1 id="cart-header" style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff;">
+          Your Shopping Bag
+        </h1>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">
+          Verified and protected by ShipProof 24/7 AI Store Guardian
+        </p>
+      </div>
+      <a href="/" class="nav-btn">
+        <span>+ Add More Items</span>
+      </a>
+    </div>
+
+    {% if items %}
+      <div style="overflow-x: auto; margin-bottom: 2rem;">
+        <table style="width: 100%; border-collapse: collapse;" id="cart-table">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              <th style="padding: 0.85rem 0.5rem;">Product</th>
+              <th style="padding: 0.85rem 0.5rem;">Unit Price</th>
+              <th style="padding: 0.85rem 0.5rem; text-align: center;">Qty</th>
+              <th style="padding: 0.85rem 0.5rem; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);" id="cart-row-{{ item.product.id }}">
+                <td style="padding: 1.25rem 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                      {{ item.product.icon }}
+                    </div>
+                    <div>
+                      <strong id="cart-item-name-{{ item.product.id }}" style="font-size: 1rem; color: #ffffff; display: block;">
+                        {{ item.product.name }}
+                      </strong>
+                      <span style="font-size: 0.75rem; color: #94a3b8;">Size: Medium &bull; In Stock</span>
+                    </div>
+                  </div>
+                </td>
+
+                <td style="padding: 1.25rem 0.5rem; font-size: 0.95rem; color: #cbd5e1;">
+                  ${{ "%.2f"|format(item.product.price) }}
+                </td>
+
+                <td style="padding: 1.25rem 0.5rem; text-align: center;">
+                  <form action="/cart/update" method="POST" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" style="width: 64px; text-align: center; padding: 0.4rem 0.5rem; font-size: 0.85rem;" id="qty-input-{{ item.product.id }}">
+                    <button type="submit" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;" id="update-btn-{{ item.product.id }}">
+                      Update
+                    </button>
+                  </form>
+                </td>
+
+                <td style="padding: 1.25rem 0.5rem; text-align: right; font-weight: 700; font-size: 1.15rem; color: #34d399;" id="item-total-{{ item.product.id }}">
+                  ${{ "%.2f"|format(item.total) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
 
-      <div>
+      <!-- Checkout Summary & Action -->
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 1.75rem; background: rgba(0, 0, 0, 0.25); margin: 0 -2.25rem -2.25rem -2.25rem; padding: 1.75rem 2.25rem; border-bottom-left-radius: 26px; border-bottom-right-radius: 26px;">
+        <div>
+          <span style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.02em; display: block;">
+            Order Subtotal
+          </span>
+          <span id="cart-subtotal" style="font-size: 2rem; font-weight: 800; color: #34d399; letter-spacing: -0.02em;">
+            ${{ "%.2f"|format(subtotal) }}
+          </span>
+        </div>
+
+        <div>
         {% if defect_enabled %}
           <!-- INTENTIONAL DEFECT: Button has broken ID and disabled state -->
           <button id="checkout-btn-broken" class="btn btn-disabled" disabled style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</button>
@@ -52,14 +88,17 @@
           <!-- NORMAL / REPAIRED STATE -->
           <a id="checkout-btn" href="/checkout" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</a>
         {% endif %}
+        </div>
       </div>
-    </div>
 
-  {% else %}
-    <div style="text-align: center; padding: 3rem 0;" id="empty-cart-msg">
-      <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem;">Your cart is currently empty.</p>
-      <a href="/" class="btn btn-primary">Start Shopping</a>
-    </div>
-  {% endif %}
+    {% else %}
+      <div style="text-align: center; padding: 4rem 1rem;" id="empty-cart-msg">
+        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.6;">🛍️</div>
+        <h2 style="font-size: 1.4rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Your bag is currently empty</h2>
+        <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 2rem;">Explore our high-performance gear and add items to begin checkout.</p>
+        <a href="/" class="btn btn-primary" style="padding: 0.75rem 2rem;">Browse Catalog</a>
+      </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
