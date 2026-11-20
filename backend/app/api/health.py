@@ -19,7 +19,7 @@ _last_auth_result = (False, "Not checked")
 async def check_kane_auth() -> tuple[bool, str]:
     global _last_auth_check_time, _last_auth_result
     now = time.time()
-    if now - _last_auth_check_time < 120.0 and _last_auth_result[0]:
+    if now - _last_auth_check_time < 60.0:
         return _last_auth_result
 
     if not os.path.exists(settings.KANE_CLI_PATH) or not os.access(settings.KANE_CLI_PATH, os.X_OK):
@@ -33,7 +33,7 @@ async def check_kane_auth() -> tuple[bool, str]:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=35.0)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=3.5)
         out_text = (stdout + stderr).decode(errors="ignore")
         if proc.returncode == 0:
             _last_auth_result = (True, "Authenticated")
