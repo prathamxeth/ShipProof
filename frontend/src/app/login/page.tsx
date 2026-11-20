@@ -62,20 +62,20 @@ function LoginForm() {
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#1863dc] via-[#2563eb] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-blue-500/20 mb-2">
               <Cpu className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-white">ShipProof Console</h1>
-            <p className="text-xs text-zinc-400">
-              Autonomous AI Software Verification &amp; Kane CLI Engine
+            <h1 className="text-xl font-semibold tracking-tight text-white">ShipProof Demo</h1>
+            <p className="text-xs text-zinc-300">
+              24/7 AI Customer Simulation &amp; Self-Healing Store Guardian
             </p>
           </div>
 
           {/* Status Badge */}
-          <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-300">
+          <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-xs font-sans text-zinc-300">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Authorization Required (Enterprise Gate)</span>
+            <span>Interactive Demo Ready for Evaluation</span>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
               <AlertCircle className="w-4 h-4 text-rose-400 flex-none" />
               <span>{error}</span>
             </div>
@@ -84,8 +84,8 @@ function LoginForm() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-mono uppercase text-zinc-400">
-                ShipProof Beta Key
+              <label className="text-xs font-medium text-zinc-300">
+                Demo Passcode
               </label>
               <div className="relative flex items-center">
                 <Key className="w-4 h-4 text-zinc-500 absolute left-3 pointer-events-none" />
@@ -94,8 +94,8 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  placeholder="Paste authorization key..."
-                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 font-mono focus:border-blue-500/50 focus:outline-none transition-colors"
+                  placeholder="Enter passcode (e.g. demo)..."
+                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:border-blue-500/50 focus:outline-none transition-colors"
                   autoFocus
                 />
               </div>
@@ -108,15 +108,15 @@ function LoginForm() {
               fullWidth
               isActionTile
               icon={<ArrowRight className="w-3.5 h-3.5" />}
-              sublabel="Access autonomous proof & healing engines"
+              sublabel="Test 24/7 autonomous store protection & auto-healing"
               disabled={loading || !password.trim()}
             >
-              {loading ? "Authenticating with Gateway..." : "Enter Enterprise Console"}
+              {loading ? "Opening Interactive Demo..." : "Enter Interactive Demo"}
             </LiquidGlassButton>
           </form>
 
-          <div className="text-center text-[10px] text-zinc-500 font-mono">
-            ShipProof v2.4 • Protected by HMAC-SHA256 Session Tokens
+          <div className="text-center text-[11px] text-zinc-400">
+            ShipProof • Protecting Online Store Revenue 24/7
           </div>
         </LiquidGlassCard>
       </div>

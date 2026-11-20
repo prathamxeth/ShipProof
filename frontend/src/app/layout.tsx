@@ -4,8 +4,8 @@ import HoloBackground from "@/components/ui/HoloBackground";
 import LiquidFilters from "@/components/ui/LiquidFilters";
 
 export const metadata: Metadata = {
-  title: "ShipProof — Enterprise AI Software Verification & Repair",
-  description: "Autonomous software verification, revenue guard sentinels, and Kane CLI proof engine.",
+  title: "ShipProof — AI Store Guardian & Self-Healing Checkout",
+  description: "Autonomous 24/7 AI Store Guardian & Self-Healing Checkout. Simulates customer journeys and auto-repairs store issues.",
 };
 
 export default function RootLayout({
