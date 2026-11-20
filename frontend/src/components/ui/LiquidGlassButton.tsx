@@ -43,38 +43,39 @@ export const LiquidGlassButton = React.forwardRef<
       lg: 'text-sm py-2.5 px-5 min-h-[44px]',
     }[size];
 
-    // Variant colors for glow, text, and badge
+    // Variant colors: all variants use EMPTY liquid glass background with zero colored fills!
+    // The variant only tunes the border specular tint and focus ring.
     const variantConfig = {
       primary: {
         text: 'text-white',
-        border: 'border-blue-400/30',
-        bg: 'bg-gradient-to-r from-blue-600/30 via-blue-500/20 to-blue-600/30',
-        badgeBg: 'bg-blue-500/25 text-blue-200 border-blue-400/40',
-        shadow: 'shadow-blue-500/20',
+        border: 'border-white/20',
+        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
+        badgeBg: 'bg-white/[0.1] text-white border-white/25',
+        shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
       },
       glass: {
         text: 'text-zinc-100',
-        border: 'border-white/15',
-        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.14] to-white/[0.08]',
-        badgeBg: 'bg-white/[0.1] text-zinc-200 border-white/20',
+        border: 'border-white/16',
+        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
+        badgeBg: 'bg-white/[0.1] text-zinc-100 border-white/20',
         shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
       },
       danger: {
-        text: 'text-rose-100',
-        border: 'border-rose-400/30',
-        bg: 'bg-gradient-to-r from-rose-600/30 via-rose-500/20 to-rose-600/30',
-        badgeBg: 'bg-rose-500/25 text-rose-200 border-rose-400/40',
-        shadow: 'shadow-rose-500/20',
+        text: 'text-zinc-100',
+        border: 'border-white/20',
+        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
+        badgeBg: 'bg-white/[0.1] text-rose-300 border-rose-400/30',
+        shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-rose-400 focus-visible:ring-rose-400/40',
       },
       emerald: {
-        text: 'text-emerald-100',
-        border: 'border-emerald-400/30',
-        bg: 'bg-gradient-to-r from-emerald-600/30 via-emerald-500/20 to-emerald-600/30',
-        badgeBg: 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40',
-        shadow: 'shadow-emerald-500/20',
+        text: 'text-zinc-100',
+        border: 'border-white/20',
+        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
+        badgeBg: 'bg-white/[0.1] text-emerald-300 border-emerald-400/30',
+        shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-emerald-400 focus-visible:ring-emerald-400/40',
       },
     }[variant];
@@ -130,7 +131,7 @@ export const LiquidGlassButton = React.forwardRef<
           {/* Badge or Icon Disc (as in Stepper action tile) */}
           {!loading && (badge || icon) && (
             <span
-              className={`grid h-[24px] w-[24px] flex-none place-items-center rounded-full text-[11.5px] leading-none font-semibold tabular-nums border ${variantConfig.badgeBg} mr-2`}
+              className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full text-[11.5px] leading-none font-semibold tabular-nums border ${variantConfig.badgeBg} mr-2`}
               style={{
                 boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4)',
                 transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',

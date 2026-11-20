@@ -41,54 +41,63 @@ export function LiquidGlassCard({
   };
 
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={`liquid-glass-card relative overflow-hidden rounded-[26px] ${className}`}
-      style={{
-        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
-        ...style,
-      }}
-      {...rest}
-    >
-      {/* Specular Liquid Rim Highlight (Matching Liquid Glass Spec) */}
+    <div className="liquid-card-wrap relative w-full h-full">
       <div
-        className="pointer-events-none absolute inset-0 rounded-[26px] z-0"
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`liquid-glass-card relative overflow-hidden rounded-[26px] ${className}`}
         style={{
-          boxShadow:
-            'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4)',
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          ...style,
         }}
-      />
-
-      {/* Optical Refraction & Glass Displacement Backdrop */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 rounded-[26px]"
-        style={{
-          background:
-            'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)), rgba(11, 13, 22, 0.65)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          filter: 'url(#container-glass)',
-          isolation: 'isolate',
-        }}
-      />
-
-      {/* Cursor Ambient Glow */}
-      {interactive && mousePos.active && (
+        {...rest}
+      >
+        {/* Specular Liquid Rim Highlight (Matching Liquid Glass Spec) */}
         <div
-          className="pointer-events-none absolute -inset-px -z-10 transition-opacity duration-300"
+          className="pointer-events-none absolute inset-0 rounded-[26px] z-0"
           style={{
-            background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, ${glowColor}, transparent 70%)`,
-            opacity: intensity,
+            boxShadow:
+              'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4)',
           }}
         />
-      )}
 
-      {/* Content Layer — 100% Text Clarity, High-Contrast Visibility */}
-      <div className="relative z-10 w-full h-full text-zinc-100">
-        {children}
+        {/* Optical Refraction & Glass Displacement Backdrop — Clean Empty Liquid Glass with NO Colored Fills */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 rounded-[26px]"
+          style={{
+            background:
+              'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)), rgba(11, 13, 22, 0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            filter: 'url(#container-glass)',
+            isolation: 'isolate',
+          }}
+        />
+
+        {/* Cursor Ambient Specular Highlight */}
+        {interactive && mousePos.active && (
+          <div
+            className="pointer-events-none absolute -inset-px -z-10 transition-opacity duration-300"
+            style={{
+              background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, ${glowColor}, transparent 70%)`,
+              opacity: intensity,
+            }}
+          />
+        )}
+
+        {/* Content Layer — 100% Text Clarity, High-Contrast Visibility */}
+        <div className="relative z-10 w-full h-full text-zinc-100">
+          {children}
+        </div>
       </div>
+
+      {/* Underlying Liquid Ambient Shadow (Matching Button Spec) */}
+      <div
+        className="liquid-button-shadow"
+        aria-hidden="true"
+        style={{ borderRadius: '26px' }}
+      />
     </div>
   );
 }

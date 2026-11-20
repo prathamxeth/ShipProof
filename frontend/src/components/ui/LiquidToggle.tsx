@@ -50,17 +50,18 @@ export function LiquidToggle({
           } as React.CSSProperties
         }
       >
-        {/* Background track & indicator */}
+        {/* Background track & indicator — Clean Empty Liquid Glass */}
         <div
           className="indicator absolute inset-0 rounded-full"
           style={{
             background: checked
-              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-              : 'rgba(255, 255, 255, 0.1)',
+              ? 'linear-gradient(-75deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.15))'
+              : 'rgba(255, 255, 255, 0.08)',
             boxShadow: checked
-              ? '0 0 14px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
+              ? 'inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 255, 255, 0.25)'
               : 'inset 0 1px 2px rgba(0, 0, 0, 0.5)',
-            transition: 'background 0.2s ease, box-shadow 0.2s ease',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            transition: 'background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           }}
         />
 

@@ -330,12 +330,6 @@ export function ShipProofConsole() {
   const runListItems: AnimatedListItem[] = useMemo(() => {
     return runs.map((r) => {
       const isSelected = r.id === selectedRunId;
-      const statusColor =
-        r.status === "passed" || r.status === "verified"
-          ? "#22c55e"
-          : r.status === "failed" || r.status === "error"
-          ? "#ef4444"
-          : "#eab308";
 
       return {
         id: r.id,
@@ -345,24 +339,19 @@ export function ShipProofConsole() {
               {r.title}
             </span>
             <span
-              className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded ml-2 flex-none"
-              style={{
-                backgroundColor: `${statusColor}1a`,
-                color: statusColor,
-                border: `1px solid ${statusColor}33`,
-              }}
+              className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ml-2 flex-none border border-white/20 bg-white/[0.08] text-zinc-200 shadow-sm"
             >
               {r.status}
             </span>
           </div>
         ),
         description: (
-          <span className="text-[11px] text-zinc-400 truncate block">
+          <span className="text-[11px] text-zinc-400 truncate block w-full">
             {r.target_url} • {r.passed_steps}/{r.total_steps || 1} steps
           </span>
         ),
         meta: (
-          <span className="text-[10px] text-zinc-400 font-mono">
+          <span className="text-[10px] text-zinc-400 font-mono flex-none ml-2">
             {new Date(r.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </span>
         ),
@@ -424,13 +413,7 @@ export function ShipProofConsole() {
       {/* Floating Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border backdrop-blur-xl animate-in fade-in slide-in-from-top-2 ${
-            notification.type === "success"
-              ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/30 shadow-emerald-900/30"
-              : notification.type === "error"
-              ? "bg-rose-950/90 text-rose-300 border-rose-500/30 shadow-rose-900/30"
-              : "bg-blue-950/90 text-blue-300 border-blue-500/30 shadow-blue-900/30"
-          }`}
+          className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border border-white/20 bg-white/[0.08] backdrop-blur-xl text-zinc-100 animate-in fade-in slide-in-from-top-2"
           style={{ transition: "opacity 0.15s ease, transform 0.15s ease" }}
         >
           {notification.type === "success" ? (
@@ -438,7 +421,7 @@ export function ShipProofConsole() {
           ) : notification.type === "error" ? (
             <AlertTriangle className="w-4 h-4 text-rose-400 flex-none" />
           ) : (
-            <Sparkles className="w-4 h-4 text-blue-400 flex-none" />
+            <Sparkles className="w-4 h-4 text-sky-400 flex-none" />
           )}
           <span>{notification.message}</span>
         </div>
@@ -448,13 +431,13 @@ export function ShipProofConsole() {
       <header className="w-full border-b border-white/10 bg-black/40 backdrop-blur-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#1863dc] via-[#2563eb] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/20 flex items-center justify-center shadow-lg">
             <Cpu className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm tracking-tight text-white">ShipProof</span>
-              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 font-medium">
+              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/20 text-zinc-200 font-medium">
                 AI Store Guardian
               </span>
             </div>
@@ -494,7 +477,7 @@ export function ShipProofConsole() {
             href="http://127.0.0.1:3005"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25 text-[11px] font-medium backdrop-blur-md"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/20 text-zinc-200 hover:bg-white/[0.14] text-[11px] font-medium backdrop-blur-md"
             style={{ transition: "background-color 0.15s ease, border-color 0.15s ease" }}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -518,7 +501,7 @@ export function ShipProofConsole() {
                 onClick={() => handleSetInterval(btn.sec)}
                 className={`text-[11px] px-2.5 py-1 rounded-full transition-colors duration-150 cursor-pointer ${
                   guardStatus?.interval_seconds === btn.sec
-                    ? "bg-[#1863dc] text-white shadow-md font-semibold"
+                    ? "bg-white/[0.18] text-white border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] font-semibold"
                     : "text-zinc-300 hover:text-white"
                 }`}
               >
@@ -543,8 +526,8 @@ export function ShipProofConsole() {
         {/* Judge Interactive Walkthrough Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20">
-              <Zap className="w-4 h-4 fill-current text-zinc-950" />
+            <div className="w-7 h-7 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-amber-300 font-bold text-xs shadow-md">
+              <Zap className="w-4 h-4 fill-current text-amber-300" />
             </div>
             <div>
               <span className="text-xs font-bold text-white tracking-tight">Judge Guided Walkthrough:</span>
@@ -553,44 +536,32 @@ export function ShipProofConsole() {
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
-            <button
-              type="button"
+            <LiquidGlassButton
+              size="sm"
+              variant="glass"
+              badge="1"
               onClick={() => launchScenario("defect_autoheal")}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                defectActive
-                  ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 shadow-sm shadow-rose-900/30"
-                  : "bg-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.14] border border-white/10"
-              }`}
             >
-              <span className="w-4 h-4 rounded-full bg-rose-500/30 text-rose-300 flex items-center justify-center text-[10px] font-bold">1</span>
-              <span>Break Store Checkout</span>
-            </button>
+              Break Store Checkout
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              size="sm"
+              variant="glass"
+              badge="2"
               onClick={handleTriggerProbe}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                isProbing
-                  ? "bg-blue-500/25 text-blue-300 border border-blue-500/40"
-                  : "bg-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.14] border border-white/10"
-              }`}
             >
-              <span className="w-4 h-4 rounded-full bg-blue-500/30 text-blue-300 flex items-center justify-center text-[10px] font-bold">2</span>
-              <span>Test Customer Order</span>
-            </button>
+              {isProbing ? "Testing Store…" : "Test Customer Order"}
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              size="sm"
+              variant="glass"
+              badge="3"
               onClick={handleApproveRepair}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                repairStep === 6 || (!defectActive && activeRepair?.status === "VERIFIED")
-                  ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-900/30 font-semibold"
-                  : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25"
-              }`}
             >
-              <span className="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center text-[10px] font-bold">3</span>
-              <span>Watch AI Auto-Fix Store</span>
-            </button>
+              Watch AI Auto-Fix Store
+            </LiquidGlassButton>
           </div>
         </div>
 
@@ -606,7 +577,7 @@ export function ShipProofConsole() {
                 <ShoppingCart className="w-3.5 h-3.5 text-sky-400" />
                 <span className="font-medium text-zinc-100">Orders Checked</span>
               </span>
-              <span className="text-[10px] font-sans text-sky-300 bg-sky-500/15 px-1.5 py-0.5 rounded border border-sky-500/20">Live Shopper</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Live Shopper</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -616,24 +587,24 @@ export function ShipProofConsole() {
                 textColor="#ffffff"
                 fade={0}
               />
-              <span className="text-xs text-emerald-400 font-medium">100% Tested Live</span>
+              <span className="text-xs text-zinc-300 font-medium">100% Tested Live</span>
             </div>
           </LiquidGlassCard>
 
           {/* Revenue Protected */}
           <LiquidGlassCard
-            glowColor="rgba(16, 185, 129, 0.3)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-emerald-500/10"
+            glowColor="rgba(255, 255, 255, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
           >
             <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Protected Revenue</span>
               </span>
-              <span className="text-[10px] font-sans text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30">Active Store</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Active Store</span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-2xl font-bold text-emerald-400">$</span>
+              <span className="text-2xl font-bold text-white">$</span>
               <Counter
                 value={
                   guardStatus?.revenue_protected ??
@@ -643,7 +614,7 @@ export function ShipProofConsole() {
                 }
                 fontSize="28px"
                 fontWeight={700}
-                textColor="#34d399"
+                textColor="#ffffff"
                 fade={0}
               />
               <span className="text-xs text-zinc-300 ml-1.5">Acme Voyager Store</span>
@@ -652,25 +623,25 @@ export function ShipProofConsole() {
 
           {/* Sales at Risk */}
           <LiquidGlassCard
-            glowColor={defectActive ? "rgba(244, 63, 94, 0.4)" : "rgba(255, 255, 255, 0.15)"}
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-rose-500/10"
+            glowColor="rgba(255, 255, 255, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
           >
             <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                <ShieldAlert className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Sales at Risk</span>
               </span>
-              <span className={`text-[10px] font-sans px-1.5 py-0.5 rounded ${defectActive ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 font-semibold" : "bg-white/[0.08] text-zinc-300"}`}>
-                {defectActive ? "CHECKOUT BROKEN" : "Healthy"}
+              <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 font-medium">
+                {defectActive ? "Checkout Broken" : "Healthy"}
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className={`text-2xl font-bold ${defectActive ? "text-rose-400" : "text-zinc-400"}`}>$</span>
+              <span className="text-2xl font-bold text-zinc-300">$</span>
               <Counter
                 value={defectActive ? 99 : (guardStatus?.revenue_at_risk ?? 0)}
                 fontSize="28px"
                 fontWeight={700}
-                textColor={defectActive ? "#f87171" : "#a1a1aa"}
+                textColor="#ffffff"
                 fade={0}
               />
               <span className="text-xs text-zinc-300 ml-1.5">
@@ -681,15 +652,15 @@ export function ShipProofConsole() {
 
           {/* Issues Auto-Fixed */}
           <LiquidGlassCard
-            glowColor="rgba(245, 158, 11, 0.3)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-amber-500/10"
+            glowColor="rgba(255, 255, 255, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
           >
             <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-amber-400" />
+                <Wrench className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Issues Auto-Fixed</span>
               </span>
-              <span className="text-[10px] font-sans text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">Self-Healing</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Self-Healing</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -705,15 +676,18 @@ export function ShipProofConsole() {
         </div>
 
         {/* 2. Verification Dispatch & Quick Scenarios — PromptBar */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 w-full">
           <LiquidGlassCard
-            glowColor="rgba(24, 99, 220, 0.25)"
-            className="p-2 shadow-xl"
+            glowColor="rgba(255, 255, 255, 0.08)"
+            className="p-1.5 shadow-xl w-full"
           >
             <PromptBar
-              placeholder="Tell the AI what to test (e.g. Try buying Voyager Shoes on Acme Store)..."
+              placeholder="Tell the AI what to test (e.g. Try buying Voyager Shoes on Acme Store)…"
               onSend={handlePromptSend}
               busy={isCreating || isProbing}
+              width="100%"
+              background="transparent"
+              className="w-full"
               models={[
                 { key: "kane-deep", name: "AI Shopper Pro", tag: "Full Journey" },
                 { key: "kane-guard", name: "Fast Store Scanner", tag: "Quick Audit" },
@@ -724,19 +698,19 @@ export function ShipProofConsole() {
             />
           </LiquidGlassCard>
 
-          {/* Quick-Launch Scenario Pills — Liquid Glass Buttons */}
+          {/* Quick-Launch Scenario Pills — Empty Liquid Glass Buttons */}
           <div className="flex items-center flex-wrap gap-2 pt-1">
-            <span className="text-[11px] uppercase text-zinc-400 mr-1 flex items-center gap-1 font-semibold">
+            <span className="text-[11px] uppercase text-zinc-300 mr-1 flex items-center gap-1 font-semibold">
               <Sparkles className="w-3 h-3 text-sky-400" />
               1-Click Tests:
             </span>
 
             <LiquidGlassButton
-              variant="primary"
+              variant="glass"
               size="sm"
               onClick={() => launchScenario("sentinel_checkout")}
             >
-              <ShoppingCart className="w-3.5 h-3.5 text-blue-300" />
+              <ShoppingCart className="w-3.5 h-3.5 text-zinc-200" />
               <span>Test Checkout Flow</span>
             </LiquidGlassButton>
 
@@ -765,7 +739,7 @@ export function ShipProofConsole() {
             </LiquidGlassButton>
 
             <LiquidGlassButton
-              variant="danger"
+              variant="glass"
               size="sm"
               onClick={() => launchScenario("defect_autoheal")}
             >
@@ -786,7 +760,7 @@ export function ShipProofConsole() {
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
@@ -796,7 +770,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 font-semibold">
+                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 flex items-center gap-1.5 font-semibold">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                     24/7 ACTIVE
                   </span>
@@ -822,23 +796,23 @@ export function ShipProofConsole() {
 
               {/* Store Health & Simulation Banner with Liquid Toggle */}
               <div
-                className={`p-3.5 rounded-2xl border transition-all flex flex-col gap-2.5 ${
-                  defectActive
-                    ? "bg-rose-950/40 border-rose-500/40 text-rose-200"
-                    : "bg-emerald-950/30 border-emerald-500/30 text-emerald-200"
-                }`}
+                className="p-3.5 rounded-2xl border border-white/15 flex flex-col gap-2.5 bg-white/[0.04] backdrop-blur-md"
+                style={{
+                  boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 16px rgba(0, 0, 0, 0.2)",
+                  transition: "border-color 0.15s ease",
+                }}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold flex items-center gap-1.5">
                     {defectActive ? (
                       <>
                         <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse flex-none" />
-                        <span>Alert: Checkout Button Broken!</span>
+                        <span className="text-rose-200">Alert: Checkout Button Broken!</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-none" />
-                        <span>Store is Healthy: Customers Can Buy Smoothly</span>
+                        <span className="text-emerald-200">Store is Healthy: Customers Can Buy Smoothly</span>
                       </>
                     )}
                   </span>
@@ -891,12 +865,12 @@ export function ShipProofConsole() {
 
             {/* Card 2: AI Self-Healing Studio — Liquid Glass Card */}
             <LiquidGlassCard
-              glowColor="rgba(245, 158, 11, 0.25)"
+              glowColor="rgba(255, 255, 255, 0.15)"
               className="p-5 flex flex-col gap-4 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
@@ -906,13 +880,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <span
-                  className={`text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold ${
-                    activeRepair?.status === "VERIFIED"
-                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                      : activeRepair?.status === "AWAITING_APPROVAL"
-                      ? "bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse"
-                      : "bg-white/[0.08] text-zinc-300 border-white/10"
-                  }`}
+                  className="text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold bg-white/[0.08] text-zinc-200 border-white/20"
                 >
                   {activeRepair?.status === "VERIFIED"
                     ? "Fixed & Verified"
@@ -967,15 +935,15 @@ export function ShipProofConsole() {
 
               {/* Celebration Banner when Store Protected! */}
               {repairStep === 6 && (
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-emerald-500/20 border border-emerald-500/40 text-emerald-200 flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/20 text-zinc-100 flex items-center justify-between shadow-lg backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-none" />
                     <div>
                       <span className="text-xs font-bold text-white block">Closed-Loop Self-Healing Verified!</span>
-                      <span className="text-[11px] text-emerald-300/90">Store checkout restored. 0 revenue lost. Proof recorded.</span>
+                      <span className="text-[11px] text-zinc-300">Store checkout restored. 0 revenue lost. Proof recorded.</span>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-semibold">
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 font-semibold">
                     100% Healed
                   </span>
                 </div>
@@ -989,28 +957,26 @@ export function ShipProofConsole() {
                     <span>What Happened &amp; How AI Fixed It</span>
                   </span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
-                      activeRepair?.status === "VERIFIED"
-                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                        : "bg-blue-500/15 text-blue-400 border-blue-500/30"
-                    }`}
+                    className="text-[10px] px-2 py-0.5 rounded-full border border-white/20 bg-white/[0.08] font-semibold text-zinc-100"
                   >
                     {activeRepair?.status === "VERIFIED" ? "Successfully Applied" : "Ready to Apply"}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-1">
-                      ❌ Problem Detected
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/12 flex flex-col gap-1 backdrop-blur-md">
+                    <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Problem Detected</span>
                     </span>
                     <p className="text-zinc-300 text-[11px] leading-relaxed">
                       The checkout button was disabled, preventing customers from finishing purchases.
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1">
-                      ✅ AI Solution
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/12 flex flex-col gap-1 backdrop-blur-md">
+                    <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>AI Solution</span>
                     </span>
                     <p className="text-zinc-300 text-[11px] leading-relaxed">
                       Re-enabled checkout button and restored active order submission.
@@ -1044,9 +1010,9 @@ export function ShipProofConsole() {
                             key={idx}
                             className={`px-1.5 py-0.5 rounded whitespace-pre ${
                               isAdd
-                                ? "text-emerald-400 bg-emerald-500/15"
+                                ? "text-emerald-300 bg-white/[0.04]"
                                 : isDel
-                                ? "text-rose-400 bg-rose-500/15"
+                                ? "text-rose-300 bg-white/[0.04]"
                                 : isHeader
                                 ? "text-zinc-400 font-semibold"
                                 : "text-zinc-300"
@@ -1100,7 +1066,7 @@ export function ShipProofConsole() {
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
                     <ShoppingCart className="w-4 h-4" />
                   </div>
                   <div>
@@ -1144,14 +1110,14 @@ export function ShipProofConsole() {
 
               {/* Active Loader when running */}
               {selectedRun?.status === "running" && (
-                <div className="p-4 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-between backdrop-blur-md">
+                <div className="p-4 rounded-2xl bg-white/[0.06] border border-white/20 flex items-center justify-between backdrop-blur-md">
                   <LatticeLoader
                     status="working"
                     label="AI customer is browsing products and testing checkout..."
                     pattern="sweep"
                     color="#38bdf8"
                   />
-                  <span className="text-[11px] text-blue-300 font-medium animate-pulse">Running live</span>
+                  <span className="text-[11px] text-zinc-300 font-medium animate-pulse">Running live</span>
                 </div>
               )}
 
@@ -1221,9 +1187,9 @@ export function ShipProofConsole() {
                   {selectedRun?.objective || "Verify customer can select products, add to bag, and complete checkout without errors."}
                 </p>
                 {selectedRun?.failure_reason && (
-                  <div className="mt-1 text-rose-300 text-[11px] bg-rose-500/15 p-2.5 rounded-xl border border-rose-500/30 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-none" />
-                    <span>Issue Found: Checkout button was disabled or unresponsive on cart page.</span>
+                  <div className="mt-2 w-full text-[11px] p-2.5 rounded-xl border border-white/20 bg-white/[0.06] backdrop-blur-md flex items-center gap-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] text-zinc-200">
+                    <AlertTriangle className="w-3.5 h-3.5 text-zinc-300 flex-none" />
+                    <span className="font-medium text-zinc-200">Issue Found: Checkout button was disabled or unresponsive on cart page.</span>
                   </div>
                 )}
               </div>
@@ -1251,6 +1217,8 @@ export function ShipProofConsole() {
                   }}
                   displayScrollbar={true}
                   frame={false}
+                  width="100%"
+                  className="w-full"
                 />
               </div>
             </LiquidGlassCard>

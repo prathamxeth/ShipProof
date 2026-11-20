@@ -72,10 +72,10 @@ const THEMES: Record<'dark' | 'light', Record<string, string>> = {
     '--al-frame-edge': 'rgba(255, 255, 255, 0.08)',
     '--al-frame-highlight': 'rgba(255, 255, 255, 0.07)',
     '--al-frame-shadow': '0 22px 44px -20px rgba(0, 0, 0, 0.8), 0 6px 16px -8px rgba(0, 0, 0, 0.5)',
-    '--al-tile': 'linear-gradient(180deg, #3a3644 0%, #27242f 100%)',
-    '--al-tile-edge': 'rgba(255, 255, 255, 0.07)',
-    '--al-tile-highlight': 'rgba(255, 255, 255, 0.12)',
-    '--al-tile-shadow': '0 4px 10px -4px rgba(0, 0, 0, 0.7)',
+    '--al-tile': 'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05))',
+    '--al-tile-edge': 'rgba(255, 255, 255, 0.16)',
+    '--al-tile-highlight': 'rgba(255, 255, 255, 0.35)',
+    '--al-tile-shadow': 'inset 0 0.125em 0.125em rgba(0, 0, 0, 0.15), inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.4), 0 0.25em 0.125em -0.125em rgba(0, 0, 0, 0.3)',
     '--al-well': 'rgba(255, 255, 255, 0.08)',
     '--al-ink': '#f4f4f5',
     '--al-muted': 'rgba(244, 244, 245, 0.55)',
@@ -150,18 +150,18 @@ const FADE_MASK = (() => {
 const size = (value: number | string) => (typeof value === 'number' ? `${value}px` : value);
 
 const ROOT_CLASS =
-  'relative box-border w-[min(100%,var(--al-width))] min-w-0 max-w-full rounded-[calc(var(--al-radius)+12px)] text-[color:var(--al-ink)] [-webkit-tap-highlight-color:transparent] has-[>[role=listbox]:focus-visible]:outline-2 has-[>[role=listbox]:focus-visible]:outline-offset-[3px] has-[>[role=listbox]:focus-visible]:outline-[color:var(--al-accent)]';
+  'relative box-border w-full min-w-0 max-w-full rounded-[calc(var(--al-radius)+12px)] text-[color:var(--al-ink)] [-webkit-tap-highlight-color:transparent] has-[>[role=listbox]:focus-visible]:outline-2 has-[>[role=listbox]:focus-visible]:outline-offset-[3px] has-[>[role=listbox]:focus-visible]:outline-[color:var(--al-accent)]';
 const FRAMED_CLASS =
   'p-[6px] [background:var(--al-frame)] [box-shadow:var(--al-frame-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6]';
 const FRAME_RIM_CLASS =
   'pointer-events-none absolute inset-0 z-[3] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--al-frame-edge),inset_0_1px_0_var(--al-frame-highlight)]';
 const VIEWPORT_CLASS =
-  'relative box-border overflow-x-hidden overflow-y-auto overscroll-contain rounded-[calc(var(--al-radius)+6px)] p-[6px] outline-none [--al-fade-bottom:0px] [--al-fade-top:0px]';
+  'relative box-border w-full overflow-x-hidden overflow-y-auto overscroll-contain rounded-[calc(var(--al-radius)+6px)] p-[6px] outline-none [--al-fade-bottom:0px] [--al-fade-top:0px]';
 const SCROLLBAR_CLASS =
   '[scrollbar-width:thin] [scrollbar-color:var(--al-thumb)_transparent] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-[color:var(--al-thumb)]';
 const BARE_CLASS = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const ITEM_CLASS =
-  'relative box-border flex min-w-0 cursor-pointer items-center gap-3 rounded-[var(--al-radius)] py-[10px] pr-[14px] pl-[10px] text-[color:var(--al-ink)] select-none [background:var(--al-tile)] [box-shadow:var(--al-tile-shadow)] [[data-animated]_&:not([data-state])]:opacity-0 hover:[filter:var(--al-hover)] active:[filter:var(--al-press)] data-[selected]:not-active:[filter:var(--al-active)]';
+  'relative box-border w-full flex min-w-0 cursor-pointer items-center gap-3 rounded-[var(--al-radius)] py-[10px] pr-[14px] pl-[10px] text-[color:var(--al-ink)] select-none [background:var(--al-tile)] [box-shadow:var(--al-tile-shadow)] backdrop-blur-[12px] [[data-animated]_&:not([data-state])]:opacity-0 hover:[filter:var(--al-hover)] active:[filter:var(--al-press)] data-[selected]:not-active:[filter:var(--al-active)]';
 const LEAD_CLASS =
   'grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-[max(8px,calc(var(--al-radius)-4px))] bg-[color:var(--al-well)] text-[color:var(--al-ink)]';
 const RIM_CLASS =
@@ -190,7 +190,7 @@ const AnimatedList = ({
   accentColor,
   radius = 14,
   gap = 8,
-  width = 420,
+  width = '100%',
   maxHeight = 440,
   className = '',
   itemClassName = '',
@@ -570,7 +570,7 @@ const AnimatedList = ({
           WebkitMaskImage: showGradients ? FADE_MASK : undefined
         }}
       >
-        <div ref={trackRef} className="relative flex flex-col gap-[var(--al-gap)]">
+        <div ref={trackRef} className="relative flex flex-col gap-[var(--al-gap)] w-full">
           {items.map((item, index) => {
             const entry: AnimatedListEntry = item !== null && typeof item === 'object' ? item : { title: item };
             const isSelected = index === selected;

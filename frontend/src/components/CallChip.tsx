@@ -59,14 +59,14 @@ const CallChip: React.FC<CallChipProps> = ({
   status = 'running',
   expectedMs = 2500,
   size = 34,
-  radius = 10,
-  color = 'currentColor',
-  surfaceColor = '#27272a',
+  radius = 12,
+  color = '#e4e4e7',
+  surfaceColor = 'rgba(255, 255, 255, 0.06)',
   progressColor = 'currentColor',
   progressOpacity = 0.08,
   doneColor = '#22c55e',
   errorColor = '#ef4444',
-  washOpacity = 0.14,
+  washOpacity = 0.06,
   shake = 6,
   showTimer = true,
   onRetry,
@@ -183,7 +183,7 @@ const CallChip: React.FC<CallChipProps> = ({
       data-status={status}
       data-mounted={mounted ? '' : undefined}
       data-pressed={pressed ? '' : undefined}
-      className={`group relative box-border inline-flex items-center overflow-hidden leading-none whitespace-nowrap select-none [-webkit-touch-callout:none] [height:var(--cc-size)] [padding:0_var(--cc-pad)] [gap:var(--cc-gap)] [border-radius:var(--cc-radius)] [background:var(--cc-surface)] [color:var(--cc-color)] [font-size:var(--cc-font)] [transition:transform_160ms_cubic-bezier(0.23,1,0.32,1)] data-[status=error]:cursor-pointer data-[pressed]:scale-[0.97] motion-reduce:data-[pressed]:scale-100${className ? ` ${className}` : ''}`}
+      className={`group relative box-border inline-flex items-center overflow-hidden leading-none whitespace-nowrap select-none border border-white/15 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] [-webkit-touch-callout:none] [height:var(--cc-size)] [padding:0_var(--cc-pad)] [gap:var(--cc-gap)] [border-radius:var(--cc-radius)] [background:var(--cc-surface)] [color:var(--cc-color)] [font-size:var(--cc-font)] [transition:transform_160ms_cubic-bezier(0.23,1,0.32,1)] data-[status=error]:cursor-pointer data-[pressed]:scale-[0.97] motion-reduce:data-[pressed]:scale-100${className ? ` ${className}` : ''}`}
       style={
         {
           '--cc-size': `${size}px`,

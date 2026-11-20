@@ -75,7 +75,7 @@ export interface PromptBarProps {
   menuBackground?: string;
   sparkColor?: string;
   sparkBoost?: number;
-  width?: number;
+  width?: number | string;
   radius?: number;
   maxRows?: number;
   morphDuration?: number;
@@ -228,13 +228,13 @@ const PromptBar: React.FC<PromptBarProps> = ({
   onStop,
   onAttach,
   onDictate,
-  background = '#27272a',
+  background = 'transparent',
   color = '#f5f5f5',
-  menuBackground = '#323236',
-  sparkColor = '#b39dff',
+  menuBackground = '#181923',
+  sparkColor = '#38bdf8',
   sparkBoost = 1,
-  width = 400,
-  radius = 16,
+  width = '100%',
+  radius = 20,
   maxRows = 5,
   morphDuration = 240,
   squash = 0.12,
@@ -568,7 +568,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   return (
     <div
       ref={rootRef}
-      className={`group relative text-[14px] leading-[22px] [width:min(var(--pb-w),100%)] [color:var(--pb-ink)]${className ? ` ${className}` : ''}`}
+      className={`group relative text-[14px] leading-[22px] w-full [color:var(--pb-ink)]${className ? ` ${className}` : ''}`}
       data-busy={busy ? '' : undefined}
       data-max={maxed ? '' : undefined}
       style={
@@ -576,7 +576,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
           '--pb-bg': background,
           '--pb-ink': color,
           '--pb-menu': menuBackground,
-          '--pb-w': `${width}px`,
+          '--pb-w': typeof width === 'number' ? `${width}px` : width,
           '--pb-radius': `${radius}px`,
           '--pb-spark': sparkColor,
           '--pb-press': pressScale
@@ -703,7 +703,10 @@ const PromptBar: React.FC<PromptBarProps> = ({
       ) : null}
 
       <div
-        className="relative isolate flex cursor-text flex-col gap-2 p-3 [background:var(--pb-bg)] [border-radius:var(--pb-radius)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:opacity-0 before:content-[''] before:[background:radial-gradient(140%_120%_at_0%_100%,color-mix(in_srgb,var(--pb-spark)_26%,transparent),transparent_62%)] before:[transition:opacity_500ms_ease] data-[max]:before:opacity-100"
+        className="relative isolate flex cursor-text flex-col gap-2 p-3 w-full [border-radius:var(--pb-radius)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:opacity-0 before:content-[''] before:[background:radial-gradient(140%_120%_at_0%_100%,color-mix(in_srgb,var(--pb-spark)_26%,transparent),transparent_62%)] before:[transition:opacity_500ms_ease] data-[max]:before:opacity-100"
+        style={{
+          background: background === 'transparent' ? 'transparent' : 'var(--pb-bg)',
+        }}
         role="presentation"
         data-max={maxed ? '' : undefined}
         onPointerDown={e => {
