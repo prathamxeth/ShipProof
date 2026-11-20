@@ -94,7 +94,11 @@ class RevenueGuardService:
         Executes an immediate Autonomous Secret Shopper verification run.
         """
         if self._running_probe:
-            return {"status": "busy", "message": "A Revenue Guard probe is already actively executing in Chromium."}
+            return {
+                "status": "busy",
+                "run_id": self.last_run_id,
+                "message": "A Revenue Guard probe is already actively executing in Chromium."
+            }
 
         self._running_probe = True
         self.last_probe_time = time.time()

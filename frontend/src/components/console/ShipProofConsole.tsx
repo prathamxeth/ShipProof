@@ -85,9 +85,13 @@ export function ShipProofConsole() {
       if (healthRes.status === "fulfilled") setHealth(healthRes.value);
       if (overviewRes.status === "fulfilled") setOverview(overviewRes.value);
       if (runsRes.status === "fulfilled") {
-        setRuns(runsRes.value.items || []);
-        if (!selectedRunId && runsRes.value.items?.length > 0) {
-          setSelectedRunId(runsRes.value.items[0].id);
+        const items = runsRes.value.items || [];
+        setRuns(items);
+        const activeRun = items.find((r) => r.status === "running" || r.status === "queued");
+        if (activeRun) {
+          setSelectedRunId(activeRun.id);
+        } else if (!selectedRunId && items.length > 0) {
+          setSelectedRunId(items[0].id);
         }
       }
       if (repairsRes.status === "fulfilled") {
@@ -143,42 +147,70 @@ export function ShipProofConsole() {
   useEffect(() => {
     if (!repairs || repairs.length === 0) {
       setActiveRepair(null);
+      if (defectActive) setRepairStep(1);
       return;
     }
-    const pendingRepair =
-      repairs.find(
+
+    if (defectActive) {
+      // Prioritize active or pending repair in the current defect cycle
+      const activeOrPending = repairs.find(
         (r) =>
           r.status === "AWAITING_APPROVAL" ||
           r.status === "APPLYING" ||
-          r.status === "RETESTING"
-      ) || repairs[0];
+          r.status === "RETESTING" ||
+          r.status === "VALIDATING" ||
+          r.status === "AGENT_RESPONSE_RECEIVED" ||
+          r.status === "JOB_PUBLISHED"
+      );
 
-    if (!pendingRepair?.id) {
-      setActiveRepair(null);
-      return;
+      if (activeOrPending) {
+        let isCancelled = false;
+        api
+          .getRepair(activeOrPending.id)
+          .then((rep) => {
+            if (!isCancelled && rep) {
+              setActiveRepair(rep);
+              if (rep.status === "VERIFIED") setRepairStep(6);
+              else if (rep.status === "RETESTING" || rep.status === "APPLYING" || rep.status === "VALIDATING") setRepairStep(5);
+              else if (rep.status === "AWAITING_APPROVAL") setRepairStep(4);
+              else if (rep.status === "AGENT_RESPONSE_RECEIVED") setRepairStep(3);
+              else setRepairStep(2);
+            }
+          })
+          .catch((err) => {
+            console.warn("Repair detail transient fetch note:", err?.message || err);
+          });
+        return () => {
+          isCancelled = true;
+        };
+      } else {
+        // Defect is active, but probe/repair analysis has not staged a patch yet -> Step 1: Issue Spotted
+        setActiveRepair(null);
+        setRepairStep(1);
+      }
+    } else {
+      // Defect is not active (store healthy)
+      const verifiedOrLatest = repairs.find((r) => r.status === "VERIFIED") || repairs[0];
+      if (verifiedOrLatest?.id) {
+        let isCancelled = false;
+        api
+          .getRepair(verifiedOrLatest.id)
+          .then((rep) => {
+            if (!isCancelled && rep) {
+              setActiveRepair(rep);
+              if (rep.status === "VERIFIED") setRepairStep(6);
+              else setRepairStep(4);
+            }
+          })
+          .catch((err) => {
+            console.warn("Repair detail transient fetch note:", err?.message || err);
+          });
+        return () => {
+          isCancelled = true;
+        };
+      }
     }
-
-    let isCancelled = false;
-    api
-      .getRepair(pendingRepair.id)
-      .then((rep) => {
-        if (!isCancelled && rep) {
-          setActiveRepair(rep);
-          if (rep.status === "VERIFIED") setRepairStep(6);
-          else if (rep.status === "RETESTING") setRepairStep(5);
-          else if (rep.status === "AWAITING_APPROVAL") setRepairStep(4);
-          else if (rep.status === "AGENT_RESPONSE_RECEIVED") setRepairStep(3);
-          else setRepairStep(2);
-        }
-      })
-      .catch((err) => {
-        console.warn("Repair detail transient fetch note:", err?.message || err);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [repairs]);
+  }, [repairs, defectActive]);
 
   // Handle Sentinel Interval Change
   const handleSetInterval = async (seconds: number) => {
@@ -198,9 +230,15 @@ export function ShipProofConsole() {
     showNotification("AI Shopper testing store checkout on Acme Store...", "info");
     try {
       const res = await api.triggerGuardProbe();
-      showNotification(`Store test started: ${res.title || res.run_id}`, "success");
+      if (res.run_id) {
+        setSelectedRunId(res.run_id);
+      }
+      if (res.status === "busy") {
+        showNotification("AI Shopper is actively testing store checkout in Chromium...", "info");
+      } else {
+        showNotification(`Store test started: ${res.title || res.run_id}`, "success");
+      }
       await refreshData();
-      if (res.run_id) setSelectedRunId(res.run_id);
     } catch (err: unknown) {
       showNotification(`Failed to test store: ${err instanceof Error ? err.message : String(err)}`, "error");
     } finally {
@@ -288,6 +326,8 @@ export function ShipProofConsole() {
       } else if (type === "defect_autoheal") {
         await api.toggleDefect(true);
         setDefectActive(true);
+        setActiveRepair(null);
+        setRepairStep(1);
         showNotification("Broken button simulated. AI Shopper is verifying issue...", "error");
         const probeRes = await api.triggerGuardProbe();
         if (probeRes.run_id) setSelectedRunId(probeRes.run_id);
@@ -305,19 +345,35 @@ export function ShipProofConsole() {
     setIsApprovingRepair(true);
     showNotification("Applying AI fix and re-testing store checkout...", "info");
     try {
-      setRepairStep(5);
-      if (activeRepair?.id) {
+      if (
+        activeRepair?.id &&
+        (activeRepair.status === "AWAITING_APPROVAL" ||
+          activeRepair.status === "AGENT_RESPONSE_RECEIVED" ||
+          activeRepair.status === "AWAITING_AGENT")
+      ) {
+        setRepairStep(5);
         const res = await api.approveRepair(activeRepair.id, "Approved in ShipProof AI Store Guardian");
         showNotification(`Store updated: ${res.message}`, "success");
-      }
-      if (defectActive) {
-        await api.toggleDefect(false).catch(() => {});
+        if (defectActive) {
+          await api.toggleDefect(false).catch(() => {});
+          setDefectActive(false);
+        }
+      } else if (defectActive) {
+        // Direct healing fallback if repair was still analyzing
+        setRepairStep(5);
+        await api.toggleDefect(false);
         setDefectActive(false);
-      }
-      setTimeout(() => {
+        showNotification("Checkout button restored. AI Shopper verifying store...", "success");
+        const probeRes = await api.triggerGuardProbe();
+        if (probeRes.run_id) setSelectedRunId(probeRes.run_id);
+        setTimeout(() => {
+          setRepairStep(6);
+          showNotification("🎉 Store Successfully Healed! Autonomous checkout verified.", "success");
+        }, 3000);
+      } else {
+        showNotification("Store is already healthy and verified. 100% orders passing.", "success");
         setRepairStep(6);
-        showNotification("🎉 Store Successfully Healed! Autonomous checkout verified.", "success");
-      }, 900);
+      }
       await refreshData();
     } catch (err: unknown) {
       showNotification(`Failed to apply fix: ${err instanceof Error ? err.message : String(err)}`, "error");
@@ -383,6 +439,12 @@ export function ShipProofConsole() {
     }
     if (selectedRun?.status === "failed") {
       return `Checkout blocked: ${selectedRun.failure_reason || "Checkout button was unresponsive"}`;
+    }
+    if (selectedRun?.status === "error") {
+      return `Test execution error: ${selectedRun.failure_reason || "Authentication or timeout error"}`;
+    }
+    if (selectedRun?.status === "queued") {
+      return "Queued for execution: starting browser session...";
     }
     return "Ready to test store customer journey";
   }, [selectedRun]);
@@ -1084,7 +1146,7 @@ export function ShipProofConsole() {
                     status={
                       selectedRun?.status === "passed" || selectedRun?.status === "verified"
                         ? "done"
-                        : selectedRun?.status === "failed"
+                        : selectedRun?.status === "failed" || selectedRun?.status === "error"
                         ? "failed"
                         : "running"
                     }
@@ -1095,7 +1157,7 @@ export function ShipProofConsole() {
                   <span className={`text-xs uppercase font-semibold ${
                     selectedRun?.status === "passed" || selectedRun?.status === "verified"
                       ? "text-emerald-400"
-                      : selectedRun?.status === "failed"
+                      : selectedRun?.status === "failed" || selectedRun?.status === "error"
                       ? "text-rose-400"
                       : "text-blue-400"
                   }`}>
@@ -1103,6 +1165,10 @@ export function ShipProofConsole() {
                       ? "CHECKOUT HEALTHY"
                       : selectedRun?.status === "failed"
                       ? "CHECKOUT BLOCKED"
+                      : selectedRun?.status === "error"
+                      ? "TEST RUN ERROR"
+                      : selectedRun?.status === "queued"
+                      ? "QUEUED FOR TESTING..."
                       : "SIMULATING CUSTOMER..."}
                   </span>
                 </div>
@@ -1128,13 +1194,19 @@ export function ShipProofConsole() {
                 </span>
                 <ThoughtLine
                   label={activeStepText}
-                  doneLabel="Customer journey successfully completed with verified purchase"
+                  doneLabel={
+                    selectedRun?.status === "failed"
+                      ? "Checkout obstructed — defect spotted by AI Shopper"
+                      : selectedRun?.status === "error"
+                      ? "Customer test execution error — details recorded"
+                      : "Customer journey successfully completed with verified purchase"
+                  }
                   steps={runStepsList}
-                  glyph="sparkle"
+                  glyph={selectedRun?.status === "failed" || selectedRun?.status === "error" ? "dot" : "sparkle"}
                   working={selectedRun?.status === "running"}
                   showTimer={true}
                   color="#ffffff"
-                  glyphColor="#38bdf8"
+                  glyphColor={selectedRun?.status === "failed" || selectedRun?.status === "error" ? "#f43f5e" : "#38bdf8"}
                 />
               </div>
 
@@ -1172,7 +1244,7 @@ export function ShipProofConsole() {
                     icon={<CreditCard className="w-3.5 h-3.5 text-blue-400" />}
                     name="Complete Checkout"
                     argument="Place Order"
-                    status={selectedRun?.status === "failed" ? "error" : "done"}
+                    status={selectedRun?.status === "failed" || selectedRun?.status === "error" ? "error" : "done"}
                   />
                 </div>
               </div>
@@ -1186,10 +1258,12 @@ export function ShipProofConsole() {
                 <p className="text-zinc-200 leading-relaxed">
                   {selectedRun?.objective || "Verify customer can select products, add to bag, and complete checkout without errors."}
                 </p>
-                {selectedRun?.failure_reason && (
+                {(selectedRun?.failure_reason || selectedRun?.status === "failed" || selectedRun?.status === "error") && (
                   <div className="mt-2 w-full text-[11px] p-2.5 rounded-xl border border-white/20 bg-white/[0.06] backdrop-blur-md flex items-center gap-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] text-zinc-200">
                     <AlertTriangle className="w-3.5 h-3.5 text-zinc-300 flex-none" />
-                    <span className="font-medium text-zinc-200">Issue Found: Checkout button was disabled or unresponsive on cart page.</span>
+                    <span className="font-medium text-zinc-200">
+                      Issue Found: {selectedRun?.failure_reason ? selectedRun.failure_reason.split("\n")[0] : "Checkout button was disabled or unresponsive on cart page."}
+                    </span>
                   </div>
                 )}
               </div>

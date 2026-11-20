@@ -134,7 +134,8 @@ class RepairOrchestrator:
             )
             active_rep = next((r for r in run.repairs if r.status in non_terminal_statuses), None)
             if active_rep:
-                raise ValueError(f"A repair is already in progress for run {run_id} (Repair ID: {active_rep.id}, status: {active_rep.status})")
+                logger.info(f"A repair is already in progress for run {run_id} (Repair ID: {active_rep.id}, status: {active_rep.status})")
+                return active_rep
 
             # Build repair packet
             packet = await self.packet_service.build_packet(
