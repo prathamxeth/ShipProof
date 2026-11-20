@@ -26,6 +26,7 @@ class Settings(BaseModel):
         default=os.getenv("DEPLOYMENT_MODE", "development")  # type: ignore
     )
     SHIPPROOF_API_KEY: Optional[str] = Field(default=os.getenv("SHIPPROOF_API_KEY"))
+    SESSION_SECRET: Optional[str] = Field(default=os.getenv("SESSION_SECRET"))
     RATE_LIMIT_PER_MINUTE: int = Field(default=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")))
     
     # Paths
@@ -45,6 +46,7 @@ class Settings(BaseModel):
     KANE_CLI_PATH: str = Field(default=os.getenv("KANE_CLI_PATH", "/opt/homebrew/bin/kane-cli"))
     KANE_CLI_USER_AGENT: str = Field(default="shipproof-antigravity")
     KANE_DEFAULT_TIMEOUT: int = Field(default=int(os.getenv("KANE_DEFAULT_TIMEOUT", "120")))
+    KANE_EGRESS_PROXY: Optional[str] = Field(default=os.getenv("KANE_EGRESS_PROXY"))
     
     # Antigravity CLI Configuration
     AGY_CLI_PATH: str = Field(default=os.getenv("AGY_CLI_PATH", "/Users/pratham/.gemini/bin/agy"))
@@ -63,6 +65,18 @@ class Settings(BaseModel):
     ])
     TRUSTED_PROXIES: list[str] = Field(default=["127.0.0.1", "::1"])
     MAX_CONCURRENT_RUNS: int = Field(default=int(os.getenv("MAX_CONCURRENT_RUNS", "2")))
+    
+    # Worker Container & Orchestration Configuration
+    WORKER_EXECUTION_MODE: Literal["container", "subprocess"] = Field(
+        default=os.getenv("WORKER_EXECUTION_MODE", "container")  # type: ignore
+    )
+    WORKER_IMAGE: str = Field(default=os.getenv("WORKER_IMAGE", "shipproof-worker-production:latest"))
+    WORKER_DOCKER_SOCKET: str = Field(default=os.getenv("DOCKER_HOST", "unix:///Users/pratham/.docker/run/docker.sock"))
+    WORKER_MEMORY_LIMIT: str = Field(default="2048m")
+    WORKER_CPU_LIMIT: str = Field(default="2.0")
+    WORKER_PIDS_LIMIT: int = Field(default=200)
+    WORKER_STARTUP_TIMEOUT_SEC: int = Field(default=15)
+    WORKER_IPC_DIR: Path = Field(default=APP_DATA_DIR / "ipc")
 
     @model_validator(mode="after")
     def validate_deployment_security(self):
@@ -104,3 +118,4 @@ settings = Settings()
 settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
 settings.EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 settings.BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+settings.WORKER_IPC_DIR.mkdir(parents=True, exist_ok=True)

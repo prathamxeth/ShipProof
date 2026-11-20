@@ -36,9 +36,13 @@ async def init_session_db():
         except Exception:
             pass
 
+from backend.app.core.auth import _rate_limit_records, create_session_token
+
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def clean_tables():
+    _rate_limit_records.clear()
     yield
+    _rate_limit_records.clear()
     # Clean all rows after each test without unlinking the file
     async with app_db.AsyncSessionLocal() as session:
         for tbl in ["repair_events", "repair_records", "verification_events", "verification_steps", "verification_runs", "projects"]:
@@ -50,6 +54,24 @@ async def clean_tables():
 
 @pytest_asyncio.fixture
 async def client():
+    token = create_session_token("test-operator")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver", cookies={"shipproof_session": token}) as ac:
+        yield ac
+
+@pytest_asyncio.fixture
+async def auth_client():
+    transport = ASGITransport(app=app)
+    token = create_session_token(username="test-operator")
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+        cookies={"shipproof_session": token}
+    ) as ac:
+        yield ac
+
+@pytest_asyncio.fixture
+async def unauth_client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac

@@ -75,6 +75,13 @@ class RunnerService:
             logger.info(f"Terminating subprocess tree for run {run_id}")
             await terminate_process_tree(proc)
 
+        # 2. Cancel worker container if active
+        try:
+            from backend.app.services.worker_manager import worker_manager
+            worker_manager.cancel_run(run_id)
+        except Exception as e:
+            logger.warning(f"Error cancelling worker container for run {run_id}: {e}")
+
         cancelled = False
         task = self._active_tasks.get(run_id)
         if task and not task.done():
@@ -122,6 +129,13 @@ class RunnerService:
             except Exception as e:
                 logger.warning(f"Error terminating process tree for run {run_id}: {e}")
         self._active_processes.clear()
+
+        # Clean up any lingering managed worker containers
+        try:
+            from backend.app.services.worker_manager import worker_manager
+            worker_manager.runtime.recover_orphans()
+        except Exception as e:
+            logger.warning(f"Error cleaning up orphan worker containers: {e}")
 
     def enqueue_run(
         self,
@@ -287,11 +301,15 @@ class RunnerService:
             if exec_result.run_end_event:
                 session_dir = exec_result.run_end_event.session_id
 
-            found_pack = self.evidence_service.locate_evidence_pack(
-                run_id=run_id,
-                session_dir=session_dir,
-                stderr_hint=exec_result.stderr_hint
-            )
+            found_pack = None
+            if exec_result.evidence_pack_path and Path(exec_result.evidence_pack_path).exists():
+                found_pack = Path(exec_result.evidence_pack_path)
+            else:
+                found_pack = self.evidence_service.locate_evidence_pack(
+                    run_id=run_id,
+                    session_dir=session_dir,
+                    stderr_hint=exec_result.stderr_hint
+                )
 
             if found_pack:
                 try:
@@ -376,6 +394,22 @@ class RunnerService:
             })
 
             logger.info(f"Run {run_id} completed with status: {exec_result.status} (exit code: {exec_result.exit_code})")
+
+            # 6. Auto-dispatch failed runs to Repair Studio
+            if exec_result.status == "failed":
+                try:
+                    async with AsyncSessionLocal() as session:
+                        r_res = await session.execute(
+                            select(VerificationRunEntity.title).where(VerificationRunEntity.id == run_id)
+                        )
+                        run_title = r_res.scalar_one_or_none() or ""
+
+                    if not run_title.startswith("[Re-test"):
+                        from backend.app.services.repair_orchestrator import repair_orchestrator
+                        logger.info(f"Auto-dispatching failed run {run_id} to Repair Studio")
+                        asyncio.create_task(repair_orchestrator.create_repair_session(run_id=run_id))
+                except Exception as rep_err:
+                    logger.warning(f"Failed to auto-dispatch repair for run {run_id}: {rep_err}")
 
 # Singleton instance
 runner_service = RunnerService()

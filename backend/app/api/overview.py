@@ -9,6 +9,11 @@ from backend.app.models.entities import VerificationRunEntity, RepairRecordEntit
 from backend.app.models.schemas import OverviewStatsResponse, RunSummaryResponse, RepairSummaryResponse
 from backend.app.core.logging import get_logger
 from backend.app.core.auth import verify_auth
+from backend.app.core.sanitizer import (
+    sanitize_filesystem_path,
+    sanitize_kane_session_id,
+    sanitize_user_identifier
+)
 
 router = APIRouter(prefix="/overview", tags=["Overview"])
 logger = get_logger("api.overview")
@@ -92,6 +97,63 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
     )
     recent_repairs = recent_repairs_q.scalars().all()
 
+    # Map project names
+    proj_res = await db.execute(select(ProjectEntity.id, ProjectEntity.name))
+    proj_map = {row[0]: row[1] for row in proj_res.all()}
+
+    # Map run to project name for repairs
+    run_proj_q = await db.execute(
+        select(VerificationRunEntity.id, VerificationRunEntity.project_id)
+    )
+    run_to_proj_id = {row[0]: row[1] for row in run_proj_q.all()}
+
+    safe_recent_runs = [
+        RunSummaryResponse(
+            id=r.id,
+            project_id=r.project_id,
+            project_name=proj_map.get(r.project_id, "Standalone / Ad-Hoc"),
+            title=r.title,
+            objective=r.objective,
+            target_url=r.target_url,
+            status=r.status,
+            mode=r.mode,
+            kane_session_id=sanitize_kane_session_id(r.kane_session_id),
+            total_steps=r.total_steps,
+            passed_steps=r.passed_steps,
+            failed_steps=r.failed_steps,
+            exit_code=r.exit_code,
+            repaired=r.repaired,
+            repair_attempts=r.repair_attempts,
+            created_at=r.created_at,
+            completed_at=r.completed_at
+        )
+        for r in recent_runs
+    ]
+
+    safe_recent_repairs = [
+        RepairSummaryResponse(
+            id=rep.id,
+            run_id=rep.run_id,
+            project_name=proj_map.get(run_to_proj_id.get(rep.run_id), "Standalone / Ad-Hoc"),
+            attempt_number=rep.attempt_number,
+            status=rep.status,
+            execution_mode=rep.execution_mode or "ide_mediated",
+            diagnosis=rep.diagnosis,
+            git_commit_before=rep.git_commit_before,
+            git_commit_after=rep.git_commit_after,
+            retest_run_id=rep.retest_run_id,
+            retest_passed=rep.retest_passed,
+            approved_by_user_id=sanitize_user_identifier(rep.approved_by_user_id),
+            approved_at=rep.approved_at,
+            approved_diff_hash=rep.approved_diff_hash,
+            approval_decision=rep.approval_decision,
+            created_at=rep.created_at,
+            updated_at=rep.updated_at,
+            completed_at=rep.completed_at
+        )
+        for rep in recent_repairs
+    ]
+
     return OverviewStatsResponse(
         total_runs=total_runs,
         passed_runs=passed_runs,
@@ -104,6 +166,6 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
         repairs_awaiting_approval=repairs_awaiting_approval,
         repairs_in_progress=repairs_in_progress,
         total_projects=total_projects,
-        recent_runs=[RunSummaryResponse.model_validate(r) for r in recent_runs],
-        recent_repairs=[RepairSummaryResponse.model_validate(rep) for rep in recent_repairs]
+        recent_runs=safe_recent_runs,
+        recent_repairs=safe_recent_repairs
     )

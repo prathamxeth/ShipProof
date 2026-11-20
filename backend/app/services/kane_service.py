@@ -68,6 +68,7 @@ class KaneExecutionResult:
     run_end_event: Optional[NormalizedEvent] = None
     stderr_hint: Optional[str] = None
     error_message: Optional[str] = None
+    evidence_pack_path: Optional[str] = None
 
 
 class KaneService:
@@ -117,6 +118,42 @@ class KaneService:
         """
         Executes Kane CLI asynchronously, streaming NDJSON output and parsing events.
         """
+        # 1. In container mode, delegate directly to WorkerManager for isolated execution
+        if settings.WORKER_EXECUTION_MODE == "container":
+            try:
+                from backend.app.services.worker_manager import worker_manager
+                logger.info(f"Delegating run {run_id} to WorkerManager container orchestrator")
+                res = await worker_manager.execute_run(
+                    run_id=run_id,
+                    objective=objective,
+                    target_url=target_url,
+                    headless=headless,
+                    session_name=session_name,
+                    timeout=timeout,
+                    event_callback=event_callback,
+                    on_process_spawned=on_process_spawned
+                )
+                if (
+                    res.status == "error"
+                    and settings.DEPLOYMENT_MODE == "development"
+                    and (
+                        "docker" in (res.error_message or "").lower()
+                        or "operation not permitted" in (res.error_message or "").lower()
+                    )
+                ):
+                    logger.warning(
+                        f"Container execution failed ({res.error_message}); falling back to local Kane CLI subprocess in development mode."
+                    )
+                else:
+                    return res
+            except Exception as e:
+                if settings.DEPLOYMENT_MODE == "development":
+                    logger.warning(
+                        f"Container execution failed ({e}); falling back to local Kane CLI subprocess in development mode."
+                    )
+                else:
+                    raise
+
         executable = cls.resolve_executable()
         
         # Prepare run log directory
@@ -146,6 +183,10 @@ class KaneService:
         # Prepare safe environment without exposing or leaking credentials
         env = dict(os.environ)
         env["KANE_CLI_USER_AGENT"] = settings.KANE_CLI_USER_AGENT
+        if settings.KANE_EGRESS_PROXY:
+            env["HTTP_PROXY"] = settings.KANE_EGRESS_PROXY
+            env["HTTPS_PROXY"] = settings.KANE_EGRESS_PROXY
+            env["ALL_PROXY"] = settings.KANE_EGRESS_PROXY
 
         logger.info(f"Invoking Kane CLI for run {run_id}: objective='{objective[:60]}...', target={target_url}")
 
@@ -253,7 +294,13 @@ class KaneService:
             else:
                 final_status = "error"
                 if not error_msg:
-                    error_msg = f"Process terminated abnormally with exit code {exit_code}"
+                    combined_output = "".join(stderr_lines + stdout_lines)
+                    if "kane-cli login" in combined_output or "token refresh failed" in combined_output.lower():
+                        error_msg = "Kane CLI authentication expired. Please run 'kane-cli login' to re-authenticate."
+                    elif stderr_lines:
+                        error_msg = f"Process terminated abnormally with exit code {exit_code}: {stderr_lines[-1].strip()}"
+                    else:
+                        error_msg = f"Process terminated abnormally with exit code {exit_code}"
 
         except asyncio.CancelledError:
             logger.warning(f"Kane CLI run {run_id} was cancelled by caller")

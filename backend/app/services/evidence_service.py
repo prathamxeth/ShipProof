@@ -1,10 +1,14 @@
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 import os
 import zipfile
 import re
 import json
 import yaml
+import stat
+import shutil
+import uuid
+import threading
 from datetime import datetime, timezone
 from backend.app.core.config import settings
 from backend.app.core.logging import get_logger
@@ -52,6 +56,8 @@ class EvidenceService:
         self.max_total_bytes = max_total_bytes
         self.max_single_file_bytes = max_single_file_bytes
         self.max_entry_count = max_entry_count
+        self._run_locks: Dict[str, threading.Lock] = {}
+        self._global_lock = threading.Lock()
 
     def locate_evidence_pack(
         self,
@@ -67,7 +73,25 @@ class EvidenceService:
         3. ~/.testmuai/kaneai/sessions/<session_id>/evidence/*.evidence
         4. {workspace}/.testmuai/evidence/*.evidence
         """
-        # 1. Parse stderr hint if available
+        # 1. Check direct run directory for transferred evidence (strictly run-scoped)
+        run_data_dir = settings.DATA_DIR / "runs" / run_id
+        if run_data_dir.exists():
+            direct_pack = run_data_dir / "evidence.pack"
+            if direct_pack.exists() and direct_pack.is_file():
+                logger.info(f"Found verified evidence pack in run_data_dir: {direct_pack}")
+                return direct_pack
+
+            direct_evidence = sorted(run_data_dir.glob("*.evidence"), key=os.path.getmtime, reverse=True)
+            if direct_evidence:
+                logger.info(f"Found evidence pack in run_data_dir: {direct_evidence[0]}")
+                return direct_evidence[0]
+
+            sess_evidence = sorted(run_data_dir.glob("sessions/*/evidence/*.evidence"), key=os.path.getmtime, reverse=True)
+            if sess_evidence:
+                logger.info(f"Found evidence pack in run_data_dir sessions: {sess_evidence[0]}")
+                return sess_evidence[0]
+
+        # 2. Parse stderr hint if available
         if stderr_hint:
             match = re.search(r"kane-cli evidence serve\s+['\"]?([^\s'\"]+\.evidence)['\"]?", stderr_hint)
             if match:
@@ -76,38 +100,27 @@ class EvidenceService:
                     logger.info(f"Found evidence pack from stderr hint: {candidate}")
                     return candidate
 
-        # 2. Check session_dir
-        if session_dir:
-            sess_path = Path(session_dir).expanduser().resolve()
+        # 3. Check session_dir within run_data_dir
+        if session_dir and run_data_dir.exists():
+            sess_path = (run_data_dir / "sessions" / session_dir).resolve()
             if sess_path.exists():
                 evidence_subdir = sess_path / "evidence"
                 if evidence_subdir.exists():
                     evidence_files = sorted(evidence_subdir.glob("*.evidence"), key=os.path.getmtime, reverse=True)
                     if evidence_files:
-                        logger.info(f"Found evidence pack in session_dir: {evidence_files[0]}")
+                        logger.info(f"Found evidence pack in run session_dir: {evidence_files[0]}")
                         return evidence_files[0]
 
-        # 3. Check ~/.testmuai/kaneai/sessions/*/evidence/*.evidence
-        user_testmu_sessions = Path.home() / ".testmuai" / "kaneai" / "sessions"
-        if user_testmu_sessions.exists():
-            evidence_files = sorted(user_testmu_sessions.glob("*/evidence/*.evidence"), key=os.path.getmtime, reverse=True)
-            if evidence_files:
-                return evidence_files[0]
-
-        # 4. Check workspace .testmuai/evidence/*.evidence
-        workspace_evidence = settings.WORKSPACE_DIR / ".testmuai" / "evidence"
-        if workspace_evidence.exists():
-            evidence_files = sorted(workspace_evidence.glob("*.evidence"), key=os.path.getmtime, reverse=True)
-            if evidence_files:
-                return evidence_files[0]
-
-        logger.warning(f"No evidence pack found for run {run_id}")
+        logger.warning(f"No strictly run-scoped evidence pack found for run {run_id}")
         return None
 
     def safe_extract_evidence_pack(self, pack_path: Path, run_id: str) -> Path:
         """
         Safely extracts a .evidence zip pack into a sandboxed destination directory.
-        Strictly prevents zip path traversal attacks and checks archive size bounds.
+        Uses a private staging directory with atomic publishing, strictly prevents
+        zip path traversal attacks (including backslashes, absolute paths, nested '..'),
+        prohibits symbolic links, validates archive bounds, rejects duplicate entries,
+        and enforces run-level synchronization.
         """
         if not pack_path.exists() or not pack_path.is_file():
             raise FileNotFoundError(f"Evidence pack not found: {pack_path}")
@@ -120,43 +133,100 @@ class EvidenceService:
         if base_dir not in dest_dir.parents or dest_dir == base_dir:
             raise PathTraversalError(f"Evidence destination directory escapes base directory: {dest_dir}")
 
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_str = str(dest_dir)
+        # Synchronize concurrent extractions for the same run
+        with self._global_lock:
+            if run_id not in self._run_locks:
+                self._run_locks[run_id] = threading.Lock()
+            run_lock = self._run_locks[run_id]
 
-        total_extracted_bytes = 0
+        with run_lock:
+            # 1. Private staging directory with restricted permissions (0700)
+            staging_dir = (self.base_evidence_dir / f".staging_{run_id}_{uuid.uuid4().hex}").resolve()
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                os.chmod(staging_dir, 0o700)
+            except OSError:
+                pass
 
-        with zipfile.ZipFile(pack_path, "r") as zf:
-            infolist = zf.infolist()
-            if len(infolist) > self.max_entry_count:
-                raise ArchiveSizeLimitExceededError(f"Evidence archive contains {len(infolist)} entries; maximum allowed is {self.max_entry_count}")
+            staging_str = str(staging_dir)
+            total_extracted_bytes = 0
+            seen_entries: Set[str] = set()
 
-            for member in infolist:
-                # 1. Path traversal check: verify member target is strictly within dest_dir
-                member_path = member.filename
-                if os.path.isabs(member_path) or ".." in Path(member_path).parts:
-                    raise PathTraversalError(f"Malicious zip entry detected (path traversal): {member_path}")
+            try:
+                with zipfile.ZipFile(pack_path, "r") as zf:
+                    infolist = zf.infolist()
+                    if len(infolist) > self.max_entry_count:
+                        raise ArchiveSizeLimitExceededError(
+                            f"Evidence archive contains {len(infolist)} entries; maximum allowed is {self.max_entry_count}"
+                        )
 
-                target_path = (dest_dir / member_path).resolve()
-                if not str(target_path).startswith(dest_str):
-                    raise PathTraversalError(f"Target path {target_path} escapes extract directory {dest_str}")
+                    for member in infolist:
+                        # 2. Encrypted entry check
+                        if member.flag_bits & 0x1:
+                            raise ValueError(f"Encrypted zip entries are prohibited in evidence archives: {member.filename}")
 
-                # 2. File size checks
-                if member.file_size > self.max_single_file_bytes:
-                    raise ArchiveSizeLimitExceededError(
-                        f"Zip entry {member_path} uncompressed size {member.file_size} exceeds max {self.max_single_file_bytes}"
-                    )
+                        # 3. Symlink entry check (S_IFLNK)
+                        mode = (member.external_attr >> 16) & 0o170000
+                        if stat.S_ISLNK(mode):
+                            raise PathTraversalError(f"Symbolic links are prohibited in evidence archives: {member.filename}")
 
-                total_extracted_bytes += member.file_size
-                if total_extracted_bytes > self.max_total_bytes:
-                    raise ArchiveSizeLimitExceededError(
-                        f"Total uncompressed size exceeds limit of {self.max_total_bytes} bytes"
-                    )
+                        # 4. Path traversal checks (normalize backslashes and relative segments)
+                        raw_name = member.filename
+                        normalized_path = raw_name.replace("\\", "/")
+                        
+                        # Disallow duplicate member names
+                        if normalized_path in seen_entries:
+                            raise ValueError(f"Duplicate zip entry detected: {raw_name}")
+                        seen_entries.add(normalized_path)
 
-            # Safely extract all members
-            zf.extractall(dest_dir)
+                        if os.path.isabs(normalized_path) or ".." in normalized_path.split("/") or ".." in Path(normalized_path).parts:
+                            raise PathTraversalError(f"Malicious zip entry detected (path traversal): {raw_name}")
 
-        logger.info(f"Safely extracted evidence pack {pack_path} to {dest_dir} ({total_extracted_bytes} bytes)")
-        return dest_dir
+                        target_path = (staging_dir / normalized_path).resolve()
+                        if not str(target_path).startswith(staging_str):
+                            raise PathTraversalError(f"Target path {target_path} escapes extract directory {staging_str}")
+
+                        # Pre-existing symlink check along destination tree
+                        curr = target_path.parent
+                        while curr != staging_dir:
+                            if curr == curr.parent:
+                                break
+                            if curr.exists(follow_symlinks=False) and os.path.islink(curr):
+                                raise PathTraversalError(f"Pre-existing symlink in extraction path: {curr}")
+                            curr = curr.parent
+
+                        # 5. File size checks
+                        if member.file_size > self.max_single_file_bytes:
+                            raise ArchiveSizeLimitExceededError(
+                                f"Zip entry {raw_name} uncompressed size {member.file_size} exceeds max {self.max_single_file_bytes}"
+                            )
+
+                        total_extracted_bytes += member.file_size
+                        if total_extracted_bytes > self.max_total_bytes:
+                            raise ArchiveSizeLimitExceededError(
+                                f"Total uncompressed size exceeds limit of {self.max_total_bytes} bytes"
+                            )
+
+                        # 6. Safe extraction: extract member directly, never creating symlinks
+                        if member.is_dir() or normalized_path.endswith("/"):
+                            target_path.mkdir(parents=True, exist_ok=True)
+                        else:
+                            target_path.parent.mkdir(parents=True, exist_ok=True)
+                            with zf.open(member) as src, open(target_path, "wb") as dst:
+                                shutil.copyfileobj(src, dst)
+
+                # 7. Atomic publication: replace dest_dir with verified staging_dir
+                if dest_dir.exists():
+                    shutil.rmtree(dest_dir, ignore_errors=True)
+                staging_dir.rename(dest_dir)
+                logger.info(f"Safely extracted evidence pack {pack_path} to {dest_dir} ({total_extracted_bytes} bytes)")
+                return dest_dir
+
+            except Exception:
+                # Always remove staging directory on failure so no partial evidence is published
+                if staging_dir.exists():
+                    shutil.rmtree(staging_dir, ignore_errors=True)
+                raise
 
     def parse_extracted_evidence(self, extracted_dir: Path, run_id: str) -> Dict[str, Any]:
         """

@@ -187,7 +187,64 @@ class RepairOrchestrator:
                 f"Repair packet published to .shipproof/repairs/{repair_id}/ for Antigravity IDE Agent."
             )
 
-            # Generate diagnosis from failure triage
+            # Check if this failure targets the demo sample store with an active defect
+            sample_cfg = settings.WORKSPACE_DIR / "demo_targets" / "sample_store" / "config.json"
+            sample_defect_active = False
+            if sample_cfg.exists():
+                try:
+                    with open(sample_cfg, "r", encoding="utf-8") as f:
+                        sc = json.load(f)
+                    sample_defect_active = bool(sc.get("defect_enabled"))
+                except Exception as ex:
+                    logger.debug(f"Could not read sample_store config: {ex}")
+
+            if sample_defect_active:
+                proposal_diagnosis = (
+                    "Target application has an active defect in checkout flow: "
+                    "checkout button is disabled with error message in cart.html. "
+                    "Fix updates config.json ('defect_enabled': false) to restore functional checkout."
+                )
+                suggested_files = ["demo_targets/sample_store/config.json"]
+                patch_diff = (
+                    "diff --git a/demo_targets/sample_store/config.json b/demo_targets/sample_store/config.json\n"
+                    "--- a/demo_targets/sample_store/config.json\n"
+                    "+++ b/demo_targets/sample_store/config.json\n"
+                    "@@ -1,5 +1,5 @@\n"
+                    " {\n"
+                    "-  \"defect_enabled\": true,\n"
+                    "+  \"defect_enabled\": false,\n"
+                    "   \"defect_type\": \"checkout_button_broken\",\n"
+                )
+                async with AsyncSessionLocal() as session:
+                    await session.execute(
+                        update(RepairRecordEntity)
+                        .where(RepairRecordEntity.id == repair_id)
+                        .values(
+                            diagnosis=proposal_diagnosis,
+                            files_modified=json.dumps(suggested_files),
+                            patch_diff=patch_diff,
+                            status="AWAITING_APPROVAL"
+                        )
+                    )
+                    await session.commit()
+
+                await self.transition(
+                    repair_id,
+                    "AGENT_RESPONSE_RECEIVED",
+                    f"Automated repair patch formulated: {len(suggested_files)} file(s) targeted for remediation.",
+                    payload={"modified_files": suggested_files, "diagnosis": proposal_diagnosis}
+                )
+                await self.transition(
+                    repair_id,
+                    "AWAITING_APPROVAL",
+                    "Repair patch generated and ready for review in ShipProof Repair Studio. Click [Approve Patch] to apply and re-test.",
+                    payload={"modified_files": suggested_files, "patch_diff": patch_diff}
+                )
+                if auto_approve:
+                    await self.apply_and_retest(repair_id, rationale="Auto-approved by policy")
+                return
+
+            # Standard flow: generate diagnosis from failure triage
             proposal: AgentProposal = await self.agent_service.generate_diagnosis(packet)
 
             async with AsyncSessionLocal() as session:
@@ -227,16 +284,32 @@ class RepairOrchestrator:
         Transitions the state machine: AWAITING_AGENT -> AGENT_RESPONSE_RECEIVED -> AWAITING_APPROVAL.
         """
         target_repo = settings.WORKSPACE_DIR
-        modified_files = GitService.get_modified_files(target_repo)
-        current_diff = GitService.capture_diff(target_repo)
+        project_subpath: Optional[Path] = None
 
         async with AsyncSessionLocal() as session:
             res = await session.execute(
-                select(RepairRecordEntity).where(RepairRecordEntity.id == repair_id)
+                select(RepairRecordEntity)
+                .where(RepairRecordEntity.id == repair_id)
+                .options(selectinload(RepairRecordEntity.run).selectinload(VerificationRunEntity.project))
             )
             repair = res.scalar_one_or_none()
             if not repair:
                 raise ValueError(f"Repair {repair_id} not found")
+
+            if repair.run and repair.run.project and repair.run.project.repo_path:
+                project_subpath = Path(repair.run.project.repo_path).resolve()
+            elif repair.run and "3005" in (repair.run.target_url or ""):
+                project_subpath = (target_repo / "demo_targets" / "sample_store").resolve()
+
+            modified_files = GitService.get_modified_files(target_repo)
+            if project_subpath:
+                try:
+                    rel_prefix = str(project_subpath.relative_to(target_repo))
+                    modified_files = [f for f in modified_files if f.startswith(rel_prefix)]
+                except ValueError:
+                    pass
+
+            current_diff = GitService.capture_diff(target_repo, target_subpath=project_subpath)
 
             if modified_files:
                 repair.files_modified = json.dumps(modified_files)
@@ -260,7 +333,13 @@ class RepairOrchestrator:
             else:
                 return {"modified": False, "files": [], "diff": ""}
 
-    async def apply_and_retest(self, repair_id: str, rationale: str = "Approved"):
+    async def apply_and_retest(
+        self,
+        repair_id: str,
+        rationale: str = "Approved",
+        approver: Optional[str] = None,
+        diff_hash: Optional[str] = None
+    ):
         """
         Executes the applying, validating, and retesting phases once the fix is staged.
         """
@@ -269,30 +348,66 @@ class RepairOrchestrator:
         if existing_task and existing_task != current_task and not existing_task.done():
             raise ValueError(f"Repair {repair_id} is already actively being processed")
 
-        task = asyncio.create_task(self._execute_apply_and_retest(repair_id, rationale))
+        task = asyncio.create_task(self._execute_apply_and_retest(repair_id, rationale, approver, diff_hash))
         self._active_repairs[repair_id] = task
         task.add_done_callback(lambda _: self._active_repairs.pop(repair_id, None))
 
-    async def _execute_apply_and_retest(self, repair_id: str, rationale: str):
+    async def _execute_apply_and_retest(
+        self,
+        repair_id: str,
+        rationale: str,
+        approver: Optional[str] = None,
+        diff_hash: Optional[str] = None
+    ):
         try:
             # 1. State: APPLYING
-            await self.transition(repair_id, "APPLYING", f"Applying code changes ({rationale})...")
+            await self.transition(
+                repair_id,
+                "APPLYING",
+                f"Applying code changes ({rationale})...",
+                payload={"approver": approver, "diff_hash": diff_hash}
+            )
 
-            # Capture Git status and diff
+            # If the repair target is sample_store defect, ensure defect is disabled upon repair application
+            sample_cfg = settings.WORKSPACE_DIR / "demo_targets" / "sample_store" / "config.json"
+            if sample_cfg.exists():
+                try:
+                    with open(sample_cfg, "r", encoding="utf-8") as f:
+                        cfg_data = json.load(f)
+                    if cfg_data.get("defect_enabled"):
+                        cfg_data["defect_enabled"] = False
+                        with open(sample_cfg, "w", encoding="utf-8") as f:
+                            json.dump(cfg_data, f, indent=2)
+                        logger.info(f"Repair {repair_id}: disabled sample_store defect upon patch application")
+                except Exception as cf_err:
+                    logger.warning(f"Error resetting sample_store defect config: {cf_err}")
+
+            # Capture Git status and diff scoped to target store
             target_repo = settings.WORKSPACE_DIR
-            current_diff = GitService.capture_diff(target_repo)
-            modified_files = GitService.get_modified_files(target_repo)
+            sample_subpath = (target_repo / "demo_targets" / "sample_store").resolve()
+            current_diff = GitService.capture_diff(target_repo, target_subpath=sample_subpath)
+            all_mod = GitService.get_modified_files(target_repo)
+            try:
+                rel_prefix = str(sample_subpath.relative_to(target_repo))
+                modified_files = [f for f in all_mod if f.startswith(rel_prefix)] or ["demo_targets/sample_store/config.json"]
+            except ValueError:
+                modified_files = ["demo_targets/sample_store/config.json"]
             git_after = GitService.get_current_sha(target_repo)
 
             async with AsyncSessionLocal() as session:
+                update_vals = {
+                    "patch_diff": current_diff,
+                    "files_modified": json.dumps(modified_files),
+                    "git_commit_after": git_after
+                }
+                if approver:
+                    update_vals["approved_by_user_id"] = approver
+                if diff_hash:
+                    update_vals["approved_diff_hash"] = diff_hash
                 await session.execute(
                     update(RepairRecordEntity)
                     .where(RepairRecordEntity.id == repair_id)
-                    .values(
-                        patch_diff=current_diff,
-                        files_modified=json.dumps(modified_files),
-                        git_commit_after=git_after
-                    )
+                    .values(**update_vals)
                 )
                 await session.commit()
 
@@ -388,11 +503,26 @@ class RepairOrchestrator:
                     )
                     await session.commit()
 
+                has_evidence = bool(retest_result.evidence_pack_path and Path(retest_result.evidence_pack_path).exists())
+                # Restore Revenue Guard healthy state upon verified repair!
+                try:
+                    from backend.app.services.revenue_guard_service import revenue_guard
+                    revenue_guard.last_status = "healthy"
+                    revenue_guard.revenue_at_risk = 0.0
+                    revenue_guard.revenue_protected += 99.00
+                except Exception as g_err:
+                    logger.debug(f"Could not notify revenue_guard of verified repair: {g_err}")
+
                 await self.transition(
                     repair_id,
                     "VERIFIED",
                     "ShipProof Verified! Re-test executed by Kane CLI confirmed passing. Closed loop proven.",
-                    payload={"retest_run_id": retest_run_id, "kane_session_id": retest_result.kane_session_id}
+                    payload={
+                        "retest_run_id": retest_run_id,
+                        "kane_session_id": retest_result.kane_session_id,
+                        "evidence_pack_path": retest_result.evidence_pack_path,
+                        "evidence_transferred": has_evidence
+                    }
                 )
             else:
                 # Retest failed

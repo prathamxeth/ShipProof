@@ -9,7 +9,14 @@ class HealthResponse(BaseModel):
     version: str = Field(default="0.1.0")
     database: str = Field(default="connected")
     kane_cli_installed: bool = Field(default=True)
+    kane_cli_executable: bool = Field(default=True)
+    kane_cli_authenticated: bool = Field(default=False)
+    kane_auth_detail: Optional[str] = Field(default=None)
     agy_cli_installed: bool = Field(default=True)
+    agy_cli_executable: bool = Field(default=True)
+    ide_handoff_available: bool = Field(default=True)
+    execution_engine_available: bool = Field(default=True)
+    execution_mode: str = Field(default="container")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -107,14 +114,21 @@ class RepairSummaryResponse(BaseModel):
 
     id: str
     run_id: str
+    project_name: Optional[str] = None
     attempt_number: int
     status: str
     execution_mode: str = "ide_mediated"
     diagnosis: Optional[str] = None
+    patch_diff: Optional[str] = None
+    files_modified: Optional[List[str]] = None
     git_commit_before: Optional[str] = None
     git_commit_after: Optional[str] = None
     retest_run_id: Optional[str] = None
     retest_passed: bool = False
+    approved_by_user_id: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    approved_diff_hash: Optional[str] = None
+    approval_decision: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
@@ -122,8 +136,7 @@ class RepairSummaryResponse(BaseModel):
 
 class RepairDetailResponse(RepairSummaryResponse):
     failing_step_index: Optional[int] = None
-    files_modified: Optional[List[str]] = None
-    patch_diff: Optional[str] = None
+    patch_diff_hash: Optional[str] = None
     repair_packet: Optional[RepairPacketModel] = None
     prompt_markdown: Optional[str] = None
     job_directory: Optional[str] = None
@@ -133,12 +146,19 @@ class RepairDetailResponse(RepairSummaryResponse):
 
 class RepairApproveRequest(BaseModel):
     rationale: Optional[str] = Field(default="Approved by user in ShipProof Repair Studio")
+    diff_hash: Optional[str] = Field(default=None, description="SHA-256 hash of the presented workspace diff")
+    decision: Optional[str] = Field(default="APPROVE", description="'APPROVE' or 'REJECT'")
+    user_id: Optional[str] = Field(default=None, description="Ignored if provided; identity is strictly derived from session")
 
 
 class RepairApproveResponse(BaseModel):
     repair_id: str
     status: str
     message: str
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    approved_diff_hash: Optional[str] = None
+    decision: str = "APPROVE"
 
 
 # --- Project Schemas ---
@@ -189,6 +209,7 @@ class RunSummaryResponse(BaseModel):
 
     id: str
     project_id: Optional[str] = None
+    project_name: Optional[str] = None
     title: str
     objective: str
     target_url: str

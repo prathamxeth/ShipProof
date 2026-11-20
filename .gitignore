@@ -38,6 +38,7 @@ frontend/out/
 out/
 
 # Database & Runtime data
+runtime/
 *.db
 *.sqlite
 *.sqlite3
@@ -67,6 +68,11 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Scratch & temporary artifacts
+scratch/
+lint_results.txt
+backend/data/ipc/
 
 # IDE & Editor
 .vscode/

@@ -70,7 +70,35 @@ def check_rate_limit(request: Request):
     _rate_limit_records[client_ip] = timestamps
 
 def _get_signing_key() -> str:
-    return settings.SHIPPROOF_API_KEY or "dev_fallback_signing_secret_do_not_use_in_prod"
+    return (
+        settings.SESSION_SECRET or
+        settings.SHIPPROOF_API_KEY or
+        "shipproof_dev_session_secret_do_not_use_in_prod_12345678"
+    )
+
+_revoked_nonces: Dict[str, float] = {}
+_MAX_TRACKED_NONCES = 10000
+
+def revoke_ticket_nonce(nonce: str, exp: float):
+    """
+    Marks a ticket nonce as revoked/consumed until its expiration timestamp.
+    """
+    now = time.time()
+    if len(_revoked_nonces) > _MAX_TRACKED_NONCES:
+        stale = [n for n, e in _revoked_nonces.items() if e <= now]
+        for s in stale:
+            _revoked_nonces.pop(s, None)
+    _revoked_nonces[nonce] = exp
+
+def is_nonce_revoked(nonce: str) -> bool:
+    now = time.time()
+    exp = _revoked_nonces.get(nonce)
+    if exp is not None:
+        if exp > now:
+            return True
+        else:
+            _revoked_nonces.pop(nonce, None)
+    return False
 
 def create_scoped_ticket(scope: str, run_id: Optional[str] = None, ttl_seconds: int = 300) -> str:
     """
@@ -90,9 +118,15 @@ def create_scoped_ticket(scope: str, run_id: Optional[str] = None, ttl_seconds: 
     sig = hmac.new(key, payload_b64.encode(), hashlib.sha256).hexdigest()
     return f"spt.{payload_b64}.{sig}"
 
-def verify_scoped_ticket(ticket_str: str, required_scope: str, target_run_id: Optional[str] = None) -> bool:
+def verify_scoped_ticket(
+    ticket_str: str,
+    required_scope: str,
+    target_run_id: Optional[str] = None,
+    consume: bool = False
+) -> bool:
     """
     Validates a short-lived scoped ticket.
+    Checks signature, expiration, scope match, run_id containment, and nonce revocation.
     """
     try:
         parts = ticket_str.split(".")
@@ -115,7 +149,14 @@ def verify_scoped_ticket(ticket_str: str, required_scope: str, target_run_id: Op
         payload = json.loads(payload_bytes.decode())
 
         # Expiration check
-        if payload.get("exp", 0) < time.time():
+        exp = payload.get("exp", 0)
+        if exp < time.time():
+            return False
+
+        # Nonce revocation / replay check
+        nonce = payload.get("nonce")
+        if not nonce or is_nonce_revoked(nonce):
+            logger.warning(f"Scoped ticket rejected: nonce '{nonce}' is revoked or replayed.")
             return False
 
         # Scope check
@@ -128,52 +169,165 @@ def verify_scoped_ticket(ticket_str: str, required_scope: str, target_run_id: Op
         if ticket_run_id and target_run_id and ticket_run_id != target_run_id:
             return False
 
+        if consume and nonce:
+            revoke_ticket_nonce(nonce, exp)
+
         return True
     except Exception as e:
         logger.debug(f"Ticket verification failed: {e}")
         return False
 
-def extract_api_token(request: Request) -> Optional[str]:
+SESSION_COOKIE_NAME = "shipproof_session"
+DEFAULT_SESSION_TTL_SECONDS = 86400  # 24 hours
+
+def create_session_token(username: str = "beta-operator", ttl_seconds: int = DEFAULT_SESSION_TTL_SECONDS) -> str:
     """
-    Extracts the authentication token from headers or query parameters.
+    Generates an authenticated user session token signed with HMAC-SHA256.
+    Interoperable with frontend serverAuth.ts session structure.
     """
-    # 1. Bearer Header
+    payload = {
+        "sub": username,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + ttl_seconds,
+        "nonce": secrets.token_hex(8)
+    }
+    payload_json = json.dumps(payload, separators=(',', ':'))
+    payload_b64 = base64.urlsafe_b64encode(payload_json.encode()).decode().rstrip('=')
+    
+    key = _get_signing_key().encode()
+    sig = hmac.new(key, payload_b64.encode(), hashlib.sha256).hexdigest()
+    return f"{payload_b64}.{sig}"
+
+def verify_session_token(token_str: str) -> Optional[Dict[str, Any]]:
+    """
+    Validates an authenticated user session token.
+    Checks signature, expiration timestamp, and nonce revocation.
+    """
+    if not token_str:
+        return None
+    try:
+        parts = token_str.split(".")
+        if len(parts) != 2:
+            return None
+
+        payload_b64, sig = parts[0], parts[1]
+        key = _get_signing_key().encode()
+        expected_sig = hmac.new(key, payload_b64.encode(), hashlib.sha256).hexdigest()
+        
+        if not secrets.compare_digest(sig, expected_sig):
+            return None
+
+        # Add base64 padding
+        padding = 4 - (len(payload_b64) % 4)
+        if padding != 4:
+            payload_b64 += "=" * padding
+
+        payload_bytes = base64.urlsafe_b64decode(payload_b64)
+        payload = json.loads(payload_bytes.decode())
+
+        # Expiration check
+        exp = payload.get("exp", 0)
+        if exp < time.time():
+            return None
+
+        # Nonce revocation check
+        nonce = payload.get("nonce")
+        if not nonce or is_nonce_revoked(nonce):
+            logger.warning(f"Session token rejected: nonce '{nonce}' is revoked or replayed.")
+            return None
+
+        return payload
+    except Exception as e:
+        logger.debug(f"Session token verification failed: {e}")
+        return None
+
+def extract_session_token(request: Request) -> Optional[str]:
+    """
+    Extracts session token from cookie, Authorization header, or custom header.
+    """
+    cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    if cookie:
+        return cookie.strip()
+
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
-        return auth_header[7:].strip()
+        token = auth_header[7:].strip()
+        if token.count(".") == 1:
+            return token
 
-    # 2. X-ShipProof-Key
+    custom = request.headers.get("X-ShipProof-Session")
+    if custom:
+        return custom.strip()
+
+    return None
+
+def extract_api_token(request: Request) -> Optional[str]:
+    """
+    Extracts the master API token from headers or query parameters.
+    In trusted_single_tenant and production modes, query parameters are strictly forbidden.
+    In development mode, ?token= is accepted with a deprecation warning.
+    """
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        # If it's a session token (1 dot) or scoped ticket (starts with spt.), don't treat as master API key
+        if token.count(".") == 1 or token.startswith("spt."):
+            return None
+        return token
+
     custom_header = request.headers.get("X-ShipProof-Key")
     if custom_header:
         return custom_header.strip()
 
-    # 3. Query param ?token= (deprecated fallback for backward compatibility)
     query_token = request.query_params.get("token")
     if query_token:
-        return query_token.strip()
+        mode = settings.DEPLOYMENT_MODE
+        if mode in ("trusted_single_tenant", "production"):
+            logger.warning(
+                f"Security violation: query parameter ?token= rejected in {mode} mode to prevent credential leakage in URLs."
+            )
+            return None
+        else:
+            logger.warning("Development warning: ?token= query parameter is deprecated. Use Authorization headers or scoped tickets.")
+            return query_token.strip()
 
     return None
 
 async def verify_auth(request: Request) -> str:
     """
     Enforces authentication boundaries:
+    - Session Token: Derives authenticated human user identity.
+    - Master API Key: Returns 'master-operator'.
+    - Scoped Ticket: Returns 'scoped-ticket-user' (read-only URL streams/images).
     - development: Optional if no API key is set; enforces if set.
-    - trusted_single_tenant & production: Strictly enforces valid API key.
+    - trusted_single_tenant & production: Strictly enforces valid session or API key.
     """
+    if request.headers.get("X-Anonymous") == "true":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: anonymous access rejected."
+        )
+
     mode = settings.DEPLOYMENT_MODE
     expected_key = settings.SHIPPROOF_API_KEY
 
-    # Development mode without configured key permits local development
-    if mode == "development" and not expected_key:
-        return "dev-local-user"
+    # 1. Check for session token (Cookie, Bearer session, X-ShipProof-Session)
+    session_token = extract_session_token(request)
+    if session_token:
+        session_payload = verify_session_token(session_token)
+        if not session_payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed: invalid or expired session token.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return session_payload.get("sub", "authenticated-operator")
 
-    # Check for short-lived ticket in query parameters
+    # 2. Check for short-lived ticket in query parameters
     ticket = request.query_params.get("ticket")
     if ticket:
-        # Determine scope from path
         path = request.url.path
         scope = "stream" if "events" in path else ("evidence" if "evidence" in path else "all")
-        # Extract run_id if in path
         run_id = None
         if "/runs/" in path:
             parts = path.split("/runs/")[1].split("/")
@@ -182,23 +336,37 @@ async def verify_auth(request: Request) -> str:
         if verify_scoped_ticket(ticket, required_scope=scope, target_run_id=run_id):
             return "scoped-ticket-user"
 
+    # 3. Check for Master API Key or Bearer Session Token
     provided_token = extract_api_token(request)
-    if not provided_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required: missing ShipProof API token (Authorization: Bearer <token> or X-ShipProof-Key).",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    if not expected_key or not secrets.compare_digest(provided_token, expected_key):
+    if provided_token:
+        if expected_key and secrets.compare_digest(provided_token, expected_key):
+            return "master-operator"
+        # Support session token passed in Bearer header as well
+        session_payload = verify_session_token(provided_token)
+        if session_payload:
+            return session_payload.get("sub", "authenticated-operator")
         logger.warning(f"Unauthorized access attempt to {request.url.path} from {get_client_ip(request)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed: invalid ShipProof API token.",
+            detail="Authentication failed: invalid ShipProof credentials.",
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    return "authenticated-user"
+    # 4. If Bearer header was provided but was invalid
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed: invalid token signature or format.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # 5. Fail closed: unauthenticated requests to protected endpoints are strictly rejected
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required: missing ShipProof credentials (session cookie or Authorization token required).",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
 
 async def verify_protected_action(
     request: Request,
@@ -215,4 +383,30 @@ async def verify_protected_action(
         )
 
     check_rate_limit(request)
+    return user
+
+async def verify_human_approval_auth(
+    request: Request,
+    user: str = Depends(verify_protected_action)
+) -> str:
+    """
+    Dedicated dependency for repair approval actions.
+    Requires an authenticated user identity from a verified session or master operator.
+    Strictly rejects anonymous, unauthenticated, and scoped ticket access.
+    """
+    if user in ("scoped-ticket-user", "anonymous"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: scoped ticket cannot approve repairs."
+        )
+    if user == "dev-local-user":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: anonymous local access cannot approve repairs. An authenticated session is required."
+        )
+    if request.headers.get("X-Anonymous") == "true":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: anonymous approval is rejected."
+        )
     return user

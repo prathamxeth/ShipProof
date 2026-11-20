@@ -80,17 +80,21 @@ class GitService:
     @classmethod
     def capture_diff(cls, repo_dir: Path, target_subpath: Optional[Path] = None) -> str:
         args = ["diff", "HEAD"]
+        subpath_rel: Optional[str] = None
         if target_subpath and target_subpath != repo_dir:
             try:
-                rel = target_subpath.relative_to(repo_dir)
-                args.append(str(rel))
+                subpath_rel = str(target_subpath.relative_to(repo_dir))
+                args.append(subpath_rel)
             except ValueError:
                 pass
 
         code, out, err = cls._run_git_cmd(args, repo_dir)
         if code != 0 or not out:
             # Fallback to unstaged diff
-            code, out, err = cls._run_git_cmd(["diff"], repo_dir)
+            diff_args = ["diff"]
+            if subpath_rel:
+                diff_args.append(subpath_rel)
+            code, out, err = cls._run_git_cmd(diff_args, repo_dir)
         return out or ""
 
     @classmethod

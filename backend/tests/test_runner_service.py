@@ -52,7 +52,7 @@ async def test_successful_run_lifecycle_and_persistence(client: AsyncClient):
         detail = get_res.json()
         assert detail["status"] == "passed"
         assert detail["exit_code"] == 0
-        assert detail["kane_session_id"] == "/mock/session-101"
+        assert detail["kane_session_id"] in ("/mock/session-101", "session-101")
         assert detail["total_steps"] == 2
         assert detail["passed_steps"] == 2
         assert detail["failed_steps"] == 0

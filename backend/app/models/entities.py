@@ -131,6 +131,12 @@ class RepairRecordEntity(Base):
     retest_passed = Column(Boolean, default=False)
     failure_notes = Column(Text, nullable=True)
     
+    # Authenticated Human Approval Tracking
+    approved_by_user_id = Column(String(128), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    approved_diff_hash = Column(String(64), nullable=True)
+    approval_decision = Column(String(32), nullable=True)
+    
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
     completed_at = Column(DateTime, nullable=True)

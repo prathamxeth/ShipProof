@@ -6,6 +6,7 @@ import tempfile
 from backend.app.core.auth import verify_protected_action
 from backend.app.services.backup_service import backup_service
 from backend.app.core.logging import get_logger
+from backend.app.core.sanitizer import sanitize_filesystem_path
 
 router = APIRouter(prefix="/system", tags=["System & Maintenance"])
 logger = get_logger("api.system")
@@ -39,7 +40,7 @@ async def create_backup():
         is_valid, msg = backup_service.verify_backup_integrity(backup_path)
         return BackupResponse(
             status="success" if is_valid else "error",
-            backup_path=str(backup_path),
+            backup_path=sanitize_filesystem_path(str(backup_path)) or backup_path.name,
             file_size_bytes=backup_path.stat().st_size,
             integrity_check=msg
         )
@@ -85,7 +86,7 @@ async def restore_and_verify(backup_path: Optional[str] = None):
             report = backup_service.verify_restored_database(tmp_path)
             return RestoreVerifyResponse(
                 status=report["status"],
-                backup_path=str(p),
+                backup_path=sanitize_filesystem_path(str(p)) or p.name,
                 counts_match=report["counts_match"],
                 table_counts=report["table_counts"],
                 evidence_check=report["evidence_check"]

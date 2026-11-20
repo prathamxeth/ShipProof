@@ -32,22 +32,101 @@ from backend.app.services.runner_service import runner_service
 from backend.app.services.evidence_service import PathTraversalError
 from backend.app.core.url_validator import validate_target_url
 from backend.app.core.auth import verify_auth, verify_protected_action
+from backend.app.core.sanitizer import (
+    sanitize_filesystem_path,
+    sanitize_kane_session_id,
+    sanitize_user_identifier
+)
+from backend.app.models.schemas import StepResponse, RepairSummaryResponse
 
 router = APIRouter(prefix="/runs", tags=["Verification Runs"])
 logger = get_logger("api.runs")
 
+async def get_project_map(db: AsyncSession) -> dict[str, str]:
+    res = await db.execute(select(ProjectEntity.id, ProjectEntity.name))
+    return {row[0]: row[1] for row in res.all()}
+
+def to_run_summary(run: VerificationRunEntity, project_map: dict[str, str]) -> RunSummaryResponse:
+    p_name = project_map.get(run.project_id) if run.project_id else "Standalone / Ad-Hoc"
+    return RunSummaryResponse(
+        id=run.id,
+        project_id=run.project_id,
+        project_name=p_name,
+        title=run.title,
+        objective=run.objective,
+        target_url=run.target_url,
+        status=run.status,
+        mode=run.mode,
+        kane_session_id=sanitize_kane_session_id(run.kane_session_id),
+        total_steps=run.total_steps,
+        passed_steps=run.passed_steps,
+        failed_steps=run.failed_steps,
+        exit_code=run.exit_code,
+        repaired=run.repaired,
+        repair_attempts=run.repair_attempts,
+        created_at=run.created_at,
+        completed_at=run.completed_at
+    )
+
+def to_run_detail(run: VerificationRunEntity, project_map: dict[str, str]) -> RunDetailResponse:
+    p_name = project_map.get(run.project_id) if run.project_id else "Standalone / Ad-Hoc"
+    summary = to_run_summary(run, project_map)
+    repairs_summary = [
+        RepairSummaryResponse(
+            id=rep.id,
+            run_id=rep.run_id,
+            project_name=p_name,
+            attempt_number=rep.attempt_number,
+            status=rep.status,
+            execution_mode=rep.execution_mode or "ide_mediated",
+            diagnosis=rep.diagnosis,
+            git_commit_before=rep.git_commit_before,
+            git_commit_after=rep.git_commit_after,
+            retest_run_id=rep.retest_run_id,
+            retest_passed=rep.retest_passed,
+            approved_by_user_id=sanitize_user_identifier(rep.approved_by_user_id),
+            approved_at=rep.approved_at,
+            approved_diff_hash=rep.approved_diff_hash,
+            approval_decision=rep.approval_decision,
+            created_at=rep.created_at,
+            updated_at=rep.updated_at,
+            completed_at=rep.completed_at
+        )
+        for rep in (run.repairs or [])
+    ]
+    return RunDetailResponse(
+        **summary.model_dump(),
+        execution_id=run.execution_id,
+        evidence_pack_path=sanitize_filesystem_path(run.evidence_pack_path),
+        failure_reason=run.failure_reason,
+        verification_proof=run.verification_proof,
+        steps=[StepResponse.model_validate(s) for s in (run.steps or [])],
+        repairs=repairs_summary,
+        events_count=len(run.events) if run.events else 0
+    )
+
 @router.post("", response_model=RunSummaryResponse, status_code=status.HTTP_201_CREATED, summary="Create and launch a verification run", dependencies=[Depends(verify_protected_action)])
 async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends(get_db)):
     target_url = payload.target_url
+    project_id = payload.project_id
 
     # If project_id provided, ensure project exists and default target_url if not explicitly set
-    if payload.project_id:
-        proj_result = await db.execute(select(ProjectEntity).where(ProjectEntity.id == payload.project_id))
+    if project_id:
+        proj_result = await db.execute(select(ProjectEntity).where(ProjectEntity.id == project_id))
         project = proj_result.scalar_one_or_none()
         if not project:
-            raise ResourceNotFoundException("Project", payload.project_id)
+            raise ResourceNotFoundException("Project", project_id)
         if not target_url:
             target_url = project.target_url
+    elif target_url:
+        # Auto-link to matching project by target_url if available
+        validated_candidate = validate_target_url(target_url)
+        match_q = await db.execute(
+            select(ProjectEntity).where(ProjectEntity.target_url == str(validated_candidate)).order_by(ProjectEntity.created_at.asc())
+        )
+        matching_proj = match_q.scalars().first()
+        if matching_proj:
+            project_id = matching_proj.id
 
     if not target_url:
         raise ShipProofException("Either 'target_url' or a valid 'project_id' with target_url must be provided", status_code=422)
@@ -60,7 +139,7 @@ async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends
         title=payload.title,
         objective=payload.objective,
         target_url=str(target_url),
-        project_id=payload.project_id,
+        project_id=project_id,
         mode=payload.mode or "closed_loop",
         status="queued",
     )
@@ -79,7 +158,8 @@ async def create_verification_run(payload: RunCreate, db: AsyncSession = Depends
         timeout=payload.timeout or 120
     )
 
-    return run
+    project_map = await get_project_map(db)
+    return to_run_summary(run, project_map)
 
 @router.get("", response_model=PaginatedRunsResponse, summary="List verification runs", dependencies=[Depends(verify_auth)])
 async def list_verification_runs(
@@ -106,8 +186,11 @@ async def list_verification_runs(
     result = await db.execute(query)
     items = result.scalars().all()
 
+    project_map = await get_project_map(db)
+    summary_items = [to_run_summary(r, project_map) for r in items]
+
     return PaginatedRunsResponse(
-        items=items,
+        items=summary_items,
         total=total,
         limit=limit,
         offset=offset
@@ -129,10 +212,8 @@ async def get_verification_run(run_id: str, db: AsyncSession = Depends(get_db)):
     if not run:
         raise ResourceNotFoundException("VerificationRun", run_id)
     
-    # Construct response with events_count
-    resp = RunDetailResponse.model_validate(run)
-    resp.events_count = len(run.events)
-    return resp
+    project_map = await get_project_map(db)
+    return to_run_detail(run, project_map)
 
 @router.post("/{run_id}/cancel", response_model=CancelResponse, summary="Cancel an active verification run", dependencies=[Depends(verify_protected_action)])
 async def cancel_verification_run(run_id: str, db: AsyncSession = Depends(get_db)):
@@ -321,8 +402,8 @@ async def get_run_evidence(run_id: str, db: AsyncSession = Depends(get_db)):
 
     return EvidenceResponse(
         run_id=run_id,
-        pack_path=run.evidence_pack_path,
-        extracted_dir=str(evidence_dir),
+        pack_path=sanitize_filesystem_path(run.evidence_pack_path),
+        extracted_dir=f"evidence/{run_id}",
         has_evidence=True,
         has_failure_yaml=manifest.get("has_failure_yaml", False),
         failure_details=manifest.get("failure_details"),
