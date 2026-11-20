@@ -84,11 +84,25 @@ body {
   initial-value: -45deg;
 }
 
-/* Liquid Glass Card — Refractive macOS Glass Aesthetic */
+/* Liquid Glass Card — Refractive Glass Aesthetic matching Liquid Glass Spec */
 .liquid-glass-card {
   border-radius: 26px;
   position: relative;
   isolation: isolate;
+  background: linear-gradient(
+    -75deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.04)
+  ), rgba(11, 13, 22, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4),
+    0 16px 36px -12px rgba(0, 0, 0, 0.6),
+    inset 0 0 16px rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .liquid-glass-card::before {
@@ -98,7 +112,7 @@ body {
   z-index: 0;
   overflow: hidden;
   border-radius: 26px;
-  box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.6), inset 0 0 3px 1px rgba(255, 255, 255, 0.3);
   pointer-events: none;
 }
 
@@ -113,13 +127,13 @@ body {
   filter: url(#container-glass);
   overflow: hidden;
   isolation: isolate;
-  background: rgba(10, 12, 20, 0.45);
   pointer-events: none;
 }
 
-/* Liquid Glass Button — Conical Gleam & 3D Click Compression */
+/* Liquid Glass Button — Fluid 2D Settle Animation matching Stepper action button */
 .liquid-button-wrap {
-  perspective: 800px;
+  position: relative;
+  display: inline-block;
 }
 
 .liquid-glass-btn {
@@ -130,44 +144,51 @@ body {
     rgba(255, 255, 255, 0.22),
     rgba(255, 255, 255, 0.08)
   );
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
     inset 0 0.125em 0.125em rgba(0, 0, 0, 0.15),
     inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.5),
     0 0.25em 0.125em -0.125em rgba(0, 0, 0, 0.3),
     0 0 0.1em 0.25em inset rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 300ms ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .liquid-glass-btn:hover {
-  transform: scale(0.975);
+  transform: scale(0.985);
+  filter: brightness(1.1);
   box-shadow:
     inset 0 0.125em 0.125em rgba(0, 0, 0, 0.1),
-    inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.6),
+    inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.65),
     0 0.15em 0.05em -0.1em rgba(0, 0, 0, 0.35),
     0 0 0.05em 0.1em inset rgba(255, 255, 255, 0.4);
 }
 
-.liquid-button-wrap:has(.liquid-glass-btn:active) {
-  transform: rotate3d(1, 0, 0, 22deg);
+.liquid-glass-btn:active {
+  transform: scale(0.965);
+  filter: brightness(0.95);
+  box-shadow:
+    inset 0 0.125em 0.125em rgba(0, 0, 0, 0.2),
+    inset 0 -0.05em 0.05em rgba(255, 255, 255, 0.3),
+    0 0.08em 0.04em -0.05em rgba(0, 0, 0, 0.4);
 }
 
 .liquid-button-shadow {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  filter: blur(8px);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.15));
+  filter: blur(6px);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.1));
   z-index: -1;
   pointer-events: none;
-  opacity: 0.6;
-  transform: translateY(4px);
-  transition: opacity 300ms ease, transform 300ms ease;
+  opacity: 0.5;
+  transform: translateY(2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .liquid-button-wrap:hover .liquid-button-shadow {
-  opacity: 0.9;
-  transform: translateY(2px);
+  opacity: 0.8;
+  transform: translateY(1px);
 }
 

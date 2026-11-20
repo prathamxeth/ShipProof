@@ -14,7 +14,7 @@ export function LiquidGlassCard({
   children,
   className = '',
   glowColor = 'rgba(255, 255, 255, 0.12)',
-  intensity = 0.5,
+  intensity = 0.4,
   interactive = true,
   style,
   ...rest
@@ -51,26 +51,29 @@ export function LiquidGlassCard({
       }}
       {...rest}
     >
-      {/* Liquid Glass Highlight Rim (User's .glassContainer::before) */}
+      {/* Specular Liquid Rim Highlight (Matching Liquid Glass Spec) */}
       <div
         className="pointer-events-none absolute inset-0 rounded-[26px] z-0"
         style={{
           boxShadow:
-            'inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.4)',
+            'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4)',
         }}
       />
 
-      {/* Liquid Glass Backdrop & Refraction (User's .glassContainer::after) */}
+      {/* Optical Refraction & Glass Displacement Backdrop */}
       <div
-        className="pointer-events-none absolute inset-0 -z-10 rounded-[26px] bg-black/45 backdrop-blur-2xl"
+        className="pointer-events-none absolute inset-0 -z-10 rounded-[26px]"
         style={{
-          filter: 'url(#container-glass)',
+          background:
+            'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)), rgba(11, 13, 22, 0.65)',
+          backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
+          filter: 'url(#container-glass)',
           isolation: 'isolate',
         }}
       />
 
-      {/* Interactive Cursor Spotlight Glow */}
+      {/* Cursor Ambient Glow */}
       {interactive && mousePos.active && (
         <div
           className="pointer-events-none absolute -inset-px -z-10 transition-opacity duration-300"
@@ -81,7 +84,7 @@ export function LiquidGlassCard({
         />
       )}
 
-      {/* Content Layer — Preserves 100% text color, crisp typography, and full interactive visibility */}
+      {/* Content Layer — 100% Text Clarity, High-Contrast Visibility */}
       <div className="relative z-10 w-full h-full text-zinc-100">
         {children}
       </div>

@@ -782,38 +782,33 @@ export function ShipProofConsole() {
                 </p>
               </div>
 
-              {/* Action Buttons — Liquid Glass Buttons */}
+              {/* Action Buttons — Liquid Glass Action Tiles */}
               <div className="flex items-center gap-2.5 pt-1">
                 <div className="flex-1">
                   <LiquidGlassButton
                     variant="primary"
                     size="md"
                     fullWidth
+                    isActionTile
+                    icon={isProbing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                    sublabel="Autonomous Secret Shopper Probe"
                     disabled={isProbing}
                     onClick={handleTriggerProbe}
                   >
-                    {isProbing ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Probing :3005...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>Run Secret Shopper Now</span>
-                      </>
-                    )}
+                    {isProbing ? "Probing :3005..." : "Run Secret Shopper Now"}
                   </LiquidGlassButton>
                 </div>
 
                 <LiquidGlassButton
                   variant={defectActive ? "emerald" : "danger"}
                   size="md"
+                  isActionTile
+                  icon={<Bug className="w-3.5 h-3.5" />}
+                  sublabel={defectActive ? "Restore Checkout" : "Simulate Failure"}
                   disabled={isTogglingDefect}
                   onClick={handleToggleDefect}
                 >
-                  <Bug className="w-3.5 h-3.5" />
-                  <span>{defectActive ? "Clear Defect" : "Inject Defect"}</span>
+                  {defectActive ? "Clear Defect" : "Inject Defect"}
                 </LiquidGlassButton>
               </div>
             </LiquidGlassCard>
@@ -925,33 +920,28 @@ export function ShipProofConsole() {
                 </div>
               </div>
 
-              {/* Approval Actions — Liquid Glass Buttons */}
+              {/* Approval Actions — Liquid Glass Action Tiles */}
               <div className="flex items-center gap-2.5 pt-1">
                 <div className="flex-1">
                   <LiquidGlassButton
                     variant="emerald"
                     size="md"
                     fullWidth
+                    isActionTile
+                    icon={isApprovingRepair ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    sublabel="Applies patch diff & verifies with Kane"
                     disabled={isApprovingRepair}
                     onClick={handleApproveRepair}
                   >
-                    {isApprovingRepair ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Applying &amp; Retesting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Approve Patch &amp; Retest with Kane</span>
-                      </>
-                    )}
+                    {isApprovingRepair ? "Applying & Retesting..." : "Approve Patch & Retest with Kane"}
                   </LiquidGlassButton>
                 </div>
 
                 <LiquidGlassButton
                   variant="glass"
                   size="md"
+                  isActionTile
+                  sublabel="Discard fix"
                   onClick={() => showNotification("Patch rejected by operator.", "info")}
                 >
                   Reject

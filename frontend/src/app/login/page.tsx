@@ -106,16 +106,12 @@ function LoginForm() {
               variant="primary"
               size="lg"
               fullWidth
+              isActionTile
+              icon={<ArrowRight className="w-3.5 h-3.5" />}
+              sublabel="Access autonomous proof & healing engines"
               disabled={loading || !password.trim()}
             >
-              {loading ? (
-                <span>Authenticating with Gateway...</span>
-              ) : (
-                <>
-                  <span>Enter Enterprise Console</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </>
-              )}
+              {loading ? "Authenticating with Gateway..." : "Enter Enterprise Console"}
             </LiquidGlassButton>
           </form>
 
