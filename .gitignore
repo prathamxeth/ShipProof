@@ -36,6 +36,7 @@ frontend/.next/
 frontend/out/
 .next/
 out/
+*.tsbuildinfo
 
 # Database & Runtime data
 runtime/
