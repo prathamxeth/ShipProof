@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import SpotlightCard from "@/components/SpotlightCard";
+import LiquidGlassCard from "@/components/ui/LiquidGlassCard";
+import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
+import LiquidToggle from "@/components/ui/LiquidToggle";
 import Counter from "@/components/Counter";
 import StatusMark from "@/components/StatusMark";
 import ThoughtLine from "@/components/ThoughtLine";
@@ -488,7 +490,7 @@ export function ShipProofConsole() {
 
         {/* Sentinel Interval & Refresh Controls */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full bg-white/[0.05] p-0.5 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center rounded-full bg-white/[0.05] p-1 border border-white/10 backdrop-blur-md">
             <span className="text-[10px] uppercase font-mono px-2 text-zinc-400">Interval</span>
             {[
               { label: "1m", sec: 60 },
@@ -499,9 +501,9 @@ export function ShipProofConsole() {
                 key={btn.sec}
                 type="button"
                 onClick={() => handleSetInterval(btn.sec)}
-                className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
+                className={`text-[11px] font-mono px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                   guardStatus?.interval_seconds === btn.sec
-                    ? "bg-[#1863dc] text-white shadow-sm"
+                    ? "bg-[#1863dc] text-white shadow-md font-semibold"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
@@ -510,33 +512,32 @@ export function ShipProofConsole() {
             ))}
           </div>
 
-          <button
-            type="button"
+          <LiquidGlassButton
+            variant="glass"
+            size="sm"
             onClick={refreshData}
             title="Refresh All Telemetry"
-            className="p-1.5 rounded-full bg-white/[0.05] border border-white/10 text-zinc-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+          </LiquidGlassButton>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-        {/* 1. Metrics Banner — SpotlightCard Containers */}
+        {/* 1. Metrics Banner — Liquid Glass Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Total Probes */}
-          <SpotlightCard
-            theme="dark"
-            spotlightColor="rgba(56, 189, 248, 0.2)"
-            className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 flex flex-col gap-1 shadow-xl hover:border-white/20 transition-all"
+          <LiquidGlassCard
+            glowColor="rgba(56, 189, 248, 0.3)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-sky-500/10"
           >
             <div className="flex items-center justify-between text-zinc-400 text-xs">
               <span className="flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5 text-sky-400" />
                 <span>Total Probes Run</span>
               </span>
-              <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.06] px-1.5 py-0.5 rounded">Kane CLI</span>
+              <span className="text-[10px] font-mono text-zinc-300 bg-white/[0.08] px-1.5 py-0.5 rounded">Kane CLI</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -548,20 +549,19 @@ export function ShipProofConsole() {
               />
               <span className="text-xs text-emerald-400 font-mono font-medium">100% Truth</span>
             </div>
-          </SpotlightCard>
+          </LiquidGlassCard>
 
           {/* Revenue Protected */}
-          <SpotlightCard
-            theme="dark"
-            spotlightColor="rgba(16, 185, 129, 0.2)"
-            className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 flex flex-col gap-1 shadow-xl hover:border-white/20 transition-all"
+          <LiquidGlassCard
+            glowColor="rgba(16, 185, 129, 0.3)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-emerald-500/10"
           >
             <div className="flex items-center justify-between text-zinc-400 text-xs">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Revenue Protected</span>
               </span>
-              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30">Live</span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
               <span className="text-2xl font-bold text-emerald-400">$</span>
@@ -574,20 +574,19 @@ export function ShipProofConsole() {
               />
               <span className="text-xs text-zinc-400 font-mono ml-1.5">Acme Store</span>
             </div>
-          </SpotlightCard>
+          </LiquidGlassCard>
 
           {/* Revenue at Risk */}
-          <SpotlightCard
-            theme="dark"
-            spotlightColor={defectActive ? "rgba(244, 63, 94, 0.25)" : "rgba(255, 255, 255, 0.1)"}
-            className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 flex flex-col gap-1 shadow-xl hover:border-white/20 transition-all"
+          <LiquidGlassCard
+            glowColor={defectActive ? "rgba(244, 63, 94, 0.4)" : "rgba(255, 255, 255, 0.15)"}
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-rose-500/10"
           >
             <div className="flex items-center justify-between text-zinc-400 text-xs">
               <span className="flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
                 <span>Revenue at Risk</span>
               </span>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${defectActive ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse" : "bg-white/[0.06] text-zinc-400"}`}>
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${defectActive ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 animate-pulse font-semibold" : "bg-white/[0.08] text-zinc-400"}`}>
                 {defectActive ? "DEFECT DETECTED" : "Clear"}
               </span>
             </div>
@@ -602,20 +601,19 @@ export function ShipProofConsole() {
               />
               <span className="text-xs text-zinc-400 font-mono ml-1.5">per broken order</span>
             </div>
-          </SpotlightCard>
+          </LiquidGlassCard>
 
           {/* Verified Fixes */}
-          <SpotlightCard
-            theme="dark"
-            spotlightColor="rgba(245, 158, 11, 0.2)"
-            className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 flex flex-col gap-1 shadow-xl hover:border-white/20 transition-all"
+          <LiquidGlassCard
+            glowColor="rgba(245, 158, 11, 0.3)"
+            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-amber-500/10"
           >
             <div className="flex items-center justify-between text-zinc-400 text-xs">
               <span className="flex items-center gap-1.5">
                 <Wrench className="w-3.5 h-3.5 text-amber-400" />
                 <span>Verified Healed Fixes</span>
               </span>
-              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Closed-Loop</span>
+              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">Closed-Loop</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -627,12 +625,15 @@ export function ShipProofConsole() {
               />
               <span className="text-xs text-zinc-400 font-mono">1-click git approvals</span>
             </div>
-          </SpotlightCard>
+          </LiquidGlassCard>
         </div>
 
         {/* 2. Verification Dispatch & Quick Scenarios — PromptBar */}
         <div className="flex flex-col gap-3">
-          <div className="w-full rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 p-2 shadow-xl">
+          <LiquidGlassCard
+            glowColor="rgba(24, 99, 220, 0.25)"
+            className="p-2 shadow-xl"
+          >
             <PromptBar
               placeholder="Target URL or natural-language verification objective (e.g. Verify checkout on http://127.0.0.1:3005)..."
               onSend={handlePromptSend}
@@ -645,56 +646,56 @@ export function ShipProofConsole() {
               efforts={["Thorough", "Fast Audit"]}
               defaultEffort="Thorough"
             />
-          </div>
+          </LiquidGlassCard>
 
-          {/* Quick-Launch Scenario Pills */}
+          {/* Quick-Launch Scenario Pills — Liquid Glass Buttons */}
           <div className="flex items-center flex-wrap gap-2 pt-1">
             <span className="text-[11px] font-mono uppercase text-zinc-400 mr-1 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-sky-400" />
               Scenarios:
             </span>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              variant="primary"
+              size="sm"
               onClick={() => launchScenario("sentinel_checkout")}
-              className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 transition-all flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
             >
-              <Play className="w-3 h-3 text-blue-400" />
+              <Play className="w-3 h-3 text-blue-300 fill-current" />
               <span>Sentinel Checkout Probe</span>
-            </button>
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              variant="glass"
+              size="sm"
               onClick={() => launchScenario("cart_quantity")}
-              className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/10 hover:border-white/20 transition-all backdrop-blur-md cursor-pointer"
             >
               Verify Cart &amp; Quantity ($198.00)
-            </button>
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              variant="glass"
+              size="sm"
               onClick={() => launchScenario("add_to_bag")}
-              className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/10 hover:border-white/20 transition-all backdrop-blur-md cursor-pointer"
             >
               Add to Bag &amp; Size Selection
-            </button>
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              variant="glass"
+              size="sm"
               onClick={() => launchScenario("audit_catalog")}
-              className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/10 hover:border-white/20 transition-all backdrop-blur-md cursor-pointer"
             >
               Audit Catalog &amp; Navigation
-            </button>
+            </LiquidGlassButton>
 
-            <button
-              type="button"
+            <LiquidGlassButton
+              variant="danger"
+              size="sm"
               onClick={() => launchScenario("defect_autoheal")}
-              className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
             >
-              <Bug className="w-3 h-3 text-rose-400" />
+              <Bug className="w-3 h-3 text-rose-300" />
               <span>Simulate Defect → Auto-Heal</span>
-            </button>
+            </LiquidGlassButton>
           </div>
         </div>
 
@@ -702,15 +703,14 @@ export function ShipProofConsole() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column (5 Cols): Revenue Guard Sentinel & Repair Studio */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Card 1: Revenue Guard Sentinel */}
-            <SpotlightCard
-              theme="dark"
-              spotlightColor="rgba(16, 185, 129, 0.2)"
-              className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col gap-4 shadow-2xl hover:border-white/20 transition-all"
+            {/* Card 1: Revenue Guard Sentinel — Liquid Glass Card */}
+            <LiquidGlassCard
+              glowColor="rgba(16, 185, 129, 0.25)"
+              className="p-5 flex flex-col gap-4 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
@@ -720,7 +720,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     LIVE
                   </span>
@@ -728,7 +728,7 @@ export function ShipProofConsole() {
               </div>
 
               {/* Status and Next Probe Timer */}
-              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-black/50 border border-white/[0.08]">
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/[0.08]">
                 <div>
                   <span className="text-[10px] uppercase font-mono text-zinc-400 block">Next Probe In</span>
                   <div className="flex items-baseline gap-1 mt-0.5">
@@ -744,9 +744,9 @@ export function ShipProofConsole() {
                 </div>
               </div>
 
-              {/* Defect Simulator Banner */}
+              {/* Defect Simulator Banner with Liquid Toggle */}
               <div
-                className={`p-3.5 rounded-xl border transition-all flex flex-col gap-2 ${
+                className={`p-3.5 rounded-2xl border transition-all flex flex-col gap-2.5 ${
                   defectActive
                     ? "bg-rose-950/40 border-rose-500/40 text-rose-200"
                     : "bg-emerald-950/30 border-emerald-500/30 text-emerald-200"
@@ -766,9 +766,14 @@ export function ShipProofConsole() {
                       </>
                     )}
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/50 border border-current">
-                    {defectActive ? "$99.00 / order risked" : "Zero defects"}
-                  </span>
+                  
+                  {/* Liquid Organic Toggle for Defect Injection */}
+                  <LiquidToggle
+                    size="sm"
+                    checked={defectActive}
+                    disabled={isTogglingDefect}
+                    onChange={handleToggleDefect}
+                  />
                 </div>
                 <p className="text-[11px] text-zinc-300 leading-relaxed">
                   {defectActive
@@ -777,52 +782,50 @@ export function ShipProofConsole() {
                 </p>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons — Liquid Glass Buttons */}
               <div className="flex items-center gap-2.5 pt-1">
-                <button
-                  type="button"
-                  disabled={isProbing}
-                  onClick={handleTriggerProbe}
-                  className="flex-1 py-2 px-3 rounded-full bg-[#1863dc] hover:bg-[#1d4ed8] text-white text-xs font-medium transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {isProbing ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Probing :3005...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Run Secret Shopper Now</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex-1">
+                  <LiquidGlassButton
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    disabled={isProbing}
+                    onClick={handleTriggerProbe}
+                  >
+                    {isProbing ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Probing :3005...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Run Secret Shopper Now</span>
+                      </>
+                    )}
+                  </LiquidGlassButton>
+                </div>
 
-                <button
-                  type="button"
+                <LiquidGlassButton
+                  variant={defectActive ? "emerald" : "danger"}
+                  size="md"
                   disabled={isTogglingDefect}
                   onClick={handleToggleDefect}
-                  className={`py-2 px-3.5 rounded-full text-xs font-mono transition-all border flex items-center gap-1.5 cursor-pointer ${
-                    defectActive
-                      ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
-                      : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
-                  }`}
                 >
                   <Bug className="w-3.5 h-3.5" />
                   <span>{defectActive ? "Clear Defect" : "Inject Defect"}</span>
-                </button>
+                </LiquidGlassButton>
               </div>
-            </SpotlightCard>
+            </LiquidGlassCard>
 
-            {/* Card 2: Repair Studio & Closed-Loop Healing */}
-            <SpotlightCard
-              theme="dark"
-              spotlightColor="rgba(245, 158, 11, 0.2)"
-              className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col gap-4 shadow-2xl hover:border-white/20 transition-all"
+            {/* Card 2: Repair Studio & Closed-Loop Healing — Liquid Glass Card */}
+            <LiquidGlassCard
+              glowColor="rgba(245, 158, 11, 0.25)"
+              className="p-5 flex flex-col gap-4 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                  <div className="p-1.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25">
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
@@ -832,7 +835,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase border ${
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase border font-semibold ${
                     activeRepair?.status === "VERIFIED"
                       ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                       : activeRepair?.status === "AWAITING_APPROVAL"
@@ -855,32 +858,32 @@ export function ShipProofConsole() {
                   accentColor="#1863dc"
                 >
                   <Step title="Failure" description="Failure detected by Kane">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-zinc-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-300">
                       Kane identified broken checkout payload on http://127.0.0.1:3005. Revenue at risk: $99.00.
                     </div>
                   </Step>
                   <Step title="Diagnosis" description="Root-cause diagnostic">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-zinc-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-300">
                       Analysis: DOM selector &apos;#checkout-btn&apos; had an intentional click trap or disabled attribute in sample store.
                     </div>
                   </Step>
                   <Step title="IDE Handoff" description="Agent workspace patch">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-zinc-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-300">
                       Agent targeted <code className="text-blue-400">demo_targets/sample_store/templates/cart.html</code> and generated patch diff.
                     </div>
                   </Step>
                   <Step title="Diff Approval" description="Human-in-the-loop inspect">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-zinc-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-300">
                       Review unified diff below. One click applies code patch to workspace.
                     </div>
                   </Step>
                   <Step title="Kane Retest" description="Autonomous validation">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-zinc-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-zinc-300">
                       Kane CLI spins up headless browser and re-runs checkout probe to verify fix.
                     </div>
                   </Step>
                   <Step title="Verified" description="Closed-loop proof">
-                    <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-emerald-300">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-emerald-300">
                       Proof recorded with exit code 0. Clean checkout confirmed.
                     </div>
                   </Step>
@@ -894,10 +897,10 @@ export function ShipProofConsole() {
                     <Layers className="w-3.5 h-3.5 text-zinc-500" />
                     <span>{activeRepair?.files_modified?.[0] || "demo_targets/sample_store/templates/cart.html"}</span>
                   </span>
-                  <span className="text-[10px] text-zinc-500">git diff (unified)</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">git diff (unified)</span>
                 </div>
 
-                <div className="rounded-xl bg-black/60 border border-white/10 p-3 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-48 text-zinc-300 select-text">
+                <div className="rounded-2xl bg-black/60 border border-white/10 p-3.5 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-48 text-zinc-300 select-text">
                   {diffLines.map((line, idx) => {
                     const isAdd = line.startsWith("+");
                     const isDel = line.startsWith("-");
@@ -905,11 +908,11 @@ export function ShipProofConsole() {
                     return (
                       <div
                         key={idx}
-                        className={`px-1 rounded-sm whitespace-pre ${
+                        className={`px-1.5 py-0.5 rounded whitespace-pre ${
                           isAdd
-                            ? "text-emerald-400 bg-emerald-500/10"
+                            ? "text-emerald-400 bg-emerald-500/15"
                             : isDel
-                            ? "text-rose-400 bg-rose-500/10"
+                            ? "text-rose-400 bg-rose-500/15"
                             : isHeader
                             ? "text-zinc-500 font-semibold"
                             : "text-zinc-400"
@@ -922,49 +925,51 @@ export function ShipProofConsole() {
                 </div>
               </div>
 
-              {/* Approval Actions */}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  disabled={isApprovingRepair}
-                  onClick={handleApproveRepair}
-                  className="flex-1 py-2 px-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {isApprovingRepair ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Applying &amp; Retesting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Approve Patch &amp; Retest with Kane</span>
-                    </>
-                  )}
-                </button>
+              {/* Approval Actions — Liquid Glass Buttons */}
+              <div className="flex items-center gap-2.5 pt-1">
+                <div className="flex-1">
+                  <LiquidGlassButton
+                    variant="emerald"
+                    size="md"
+                    fullWidth
+                    disabled={isApprovingRepair}
+                    onClick={handleApproveRepair}
+                  >
+                    {isApprovingRepair ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Applying &amp; Retesting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Approve Patch &amp; Retest with Kane</span>
+                      </>
+                    )}
+                  </LiquidGlassButton>
+                </div>
 
-                <button
-                  type="button"
+                <LiquidGlassButton
+                  variant="glass"
+                  size="md"
                   onClick={() => showNotification("Patch rejected by operator.", "info")}
-                  className="py-2 px-3.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white text-xs font-mono transition-colors border border-white/10 cursor-pointer"
                 >
                   Reject
-                </button>
+                </LiquidGlassButton>
               </div>
-            </SpotlightCard>
+            </LiquidGlassCard>
           </div>
 
           {/* Right Column (7 Cols): Kane Telemetry, ThoughtLine, CallChips & Run Feed */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            {/* Card 3: Selected Run Execution Trace */}
-            <SpotlightCard
-              theme="dark"
-              spotlightColor="rgba(56, 189, 248, 0.2)"
-              className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col gap-4 shadow-2xl hover:border-white/20 transition-all"
+            {/* Card 3: Selected Run Execution Trace — Liquid Glass Card */}
+            <LiquidGlassCard
+              glowColor="rgba(56, 189, 248, 0.25)"
+              className="p-5 flex flex-col gap-4 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                  <div className="p-1.5 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25">
                     <Terminal className="w-4 h-4" />
                   </div>
                   <div>
@@ -998,7 +1003,7 @@ export function ShipProofConsole() {
 
               {/* Active Loader when running */}
               {selectedRun?.status === "running" && (
-                <div className="p-4 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-between backdrop-blur-md">
+                <div className="p-4 rounded-2xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-between backdrop-blur-md">
                   <LatticeLoader
                     status="working"
                     label="Autonomous Kane probe navigating store..."
@@ -1010,7 +1015,7 @@ export function ShipProofConsole() {
               )}
 
               {/* ThoughtLine: Kane Execution Timeline */}
-              <div className="p-4 rounded-xl bg-black/50 border border-white/[0.08] flex flex-col gap-2">
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-2">
                 <span className="text-[10px] uppercase font-mono text-zinc-400">Kane Agent Execution Trace</span>
                 <ThoughtLine
                   label={activeStepText}
@@ -1062,25 +1067,24 @@ export function ShipProofConsole() {
               </div>
 
               {/* Objective & Verification Proof Note */}
-              <div className="p-3.5 rounded-xl bg-black/50 border border-white/[0.08] flex flex-col gap-1.5 text-xs text-zinc-300">
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-1.5 text-xs text-zinc-300">
                 <div className="flex items-center justify-between text-zinc-400 text-[11px] font-mono">
                   <span>Objective:</span>
                   <span>ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
                 </div>
                 <p className="text-zinc-200">{selectedRun?.objective || "Verify end-to-end checkout flow on Acme Voyager store."}</p>
                 {selectedRun?.failure_reason && (
-                  <div className="mt-1 text-rose-400 font-mono text-[11px] bg-rose-500/15 p-2.5 rounded-lg border border-rose-500/30">
+                  <div className="mt-1 text-rose-400 font-mono text-[11px] bg-rose-500/15 p-2.5 rounded-xl border border-rose-500/30">
                     Failure reason: {selectedRun.failure_reason}
                   </div>
                 )}
               </div>
-            </SpotlightCard>
+            </LiquidGlassCard>
 
-            {/* Card 4: AnimatedList of All Runs */}
-            <SpotlightCard
-              theme="dark"
-              spotlightColor="rgba(255, 255, 255, 0.12)"
-              className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col gap-3 shadow-2xl hover:border-white/20 transition-all"
+            {/* Card 4: AnimatedList of All Runs — Liquid Glass Card */}
+            <LiquidGlassCard
+              glowColor="rgba(255, 255, 255, 0.15)"
+              className="p-5 flex flex-col gap-3 shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                 <div className="flex items-center gap-2">
@@ -1101,7 +1105,7 @@ export function ShipProofConsole() {
                   frame={false}
                 />
               </div>
-            </SpotlightCard>
+            </LiquidGlassCard>
           </div>
         </div>
       </main>

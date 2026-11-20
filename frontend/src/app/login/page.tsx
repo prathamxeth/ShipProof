@@ -2,7 +2,8 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import SpotlightCard from "@/components/SpotlightCard";
+import LiquidGlassCard from "@/components/ui/LiquidGlassCard";
+import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
 import { Cpu, Key, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 
 function LoginForm() {
@@ -52,10 +53,9 @@ function LoginForm() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 text-zinc-100 overflow-hidden">
       <div className="relative z-10 w-full max-w-md">
-        <SpotlightCard
-          theme="dark"
-          spotlightColor="rgba(24, 99, 220, 0.35)"
-          className="rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl backdrop-blur-2xl flex flex-col gap-6"
+        <LiquidGlassCard
+          glowColor="rgba(24, 99, 220, 0.4)"
+          className="p-8 flex flex-col gap-6 shadow-2xl"
         >
           {/* Header */}
           <div className="flex flex-col gap-2 items-center text-center">
@@ -101,10 +101,12 @@ function LoginForm() {
               </div>
             </div>
 
-            <button
+            <LiquidGlassButton
               type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
               disabled={loading || !password.trim()}
-              className="w-full py-2.5 px-4 rounded-full bg-[#1863dc] hover:bg-[#1d4ed8] text-white text-xs font-semibold font-mono transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <span>Authenticating with Gateway...</span>
@@ -114,13 +116,13 @@ function LoginForm() {
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
-            </button>
+            </LiquidGlassButton>
           </form>
 
           <div className="text-center text-[10px] text-zinc-500 font-mono">
             ShipProof v2.4 • Protected by HMAC-SHA256 Session Tokens
           </div>
-        </SpotlightCard>
+        </LiquidGlassCard>
       </div>
     </div>
   );
