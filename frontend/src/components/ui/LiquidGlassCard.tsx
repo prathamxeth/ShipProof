@@ -45,8 +45,9 @@ export function LiquidGlassCard({
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`liquid-glass-card relative overflow-hidden rounded-[26px] transition-all duration-300 ${className}`}
+      className={`liquid-glass-card relative overflow-hidden rounded-[26px] ${className}`}
       style={{
+        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
         ...style,
       }}
       {...rest}

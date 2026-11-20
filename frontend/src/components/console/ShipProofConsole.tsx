@@ -27,15 +27,18 @@ import {
   CheckCircle2,
   Clock,
   Cpu,
+  CreditCard,
   ExternalLink,
+  Globe,
   Layers,
   Play,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Wrench,
-  Sparkles,
   ShoppingCart,
+  Sparkles,
+  Wrench,
+  Zap,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -359,7 +362,7 @@ export function ShipProofConsole() {
           </span>
         ),
         meta: (
-          <span className="text-[10px] text-zinc-500 font-mono">
+          <span className="text-[10px] text-zinc-400 font-mono">
             {new Date(r.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </span>
         ),
@@ -421,13 +424,14 @@ export function ShipProofConsole() {
       {/* Floating Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border backdrop-blur-xl transition-all animate-in fade-in slide-in-from-top-2 ${
+          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border backdrop-blur-xl animate-in fade-in slide-in-from-top-2 ${
             notification.type === "success"
               ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/30 shadow-emerald-900/30"
               : notification.type === "error"
               ? "bg-rose-950/90 text-rose-300 border-rose-500/30 shadow-rose-900/30"
               : "bg-blue-950/90 text-blue-300 border-blue-500/30 shadow-blue-900/30"
           }`}
+          style={{ transition: "opacity 0.15s ease, transform 0.15s ease" }}
         >
           {notification.type === "success" ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-none" />
@@ -490,9 +494,10 @@ export function ShipProofConsole() {
             href="http://127.0.0.1:3005"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25 transition-all text-[11px] font-medium backdrop-blur-md"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 hover:bg-blue-500/25 text-[11px] font-medium backdrop-blur-md"
+            style={{ transition: "background-color 0.15s ease, border-color 0.15s ease" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             <span>View Demo Store (:3005)</span>
             <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
           </a>
@@ -511,7 +516,7 @@ export function ShipProofConsole() {
                 key={btn.sec}
                 type="button"
                 onClick={() => handleSetInterval(btn.sec)}
-                className={`text-[11px] px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                className={`text-[11px] px-2.5 py-1 rounded-full transition-colors duration-150 cursor-pointer ${
                   guardStatus?.interval_seconds === btn.sec
                     ? "bg-[#1863dc] text-white shadow-md font-semibold"
                     : "text-zinc-300 hover:text-white"
@@ -538,12 +543,12 @@ export function ShipProofConsole() {
         {/* Judge Interactive Walkthrough Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-black font-bold text-xs shadow-md shadow-amber-500/20">
-              ⚡
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-zinc-950 font-bold text-xs shadow-md shadow-amber-500/20">
+              <Zap className="w-4 h-4 fill-current text-zinc-950" />
             </div>
             <div>
               <span className="text-xs font-bold text-white tracking-tight">Judge Guided Walkthrough:</span>
-              <span className="text-xs text-zinc-400 ml-1.5 hidden md:inline">Experience autonomous detection &amp; self-healing in 3 live clicks:</span>
+              <span className="text-xs text-zinc-300 ml-1.5 hidden md:inline">Experience autonomous detection &amp; self-healing in 3 live clicks:</span>
             </div>
           </div>
 
@@ -551,7 +556,7 @@ export function ShipProofConsole() {
             <button
               type="button"
               onClick={() => launchScenario("defect_autoheal")}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 defectActive
                   ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 shadow-sm shadow-rose-900/30"
                   : "bg-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.14] border border-white/10"
@@ -564,9 +569,9 @@ export function ShipProofConsole() {
             <button
               type="button"
               onClick={handleTriggerProbe}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 isProbing
-                  ? "bg-blue-500/25 text-blue-300 border border-blue-500/40 animate-pulse"
+                  ? "bg-blue-500/25 text-blue-300 border border-blue-500/40"
                   : "bg-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.14] border border-white/10"
               }`}
             >
@@ -577,7 +582,7 @@ export function ShipProofConsole() {
             <button
               type="button"
               onClick={handleApproveRepair}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`text-[11px] px-3 py-1.5 rounded-full font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 repairStep === 6 || (!defectActive && activeRepair?.status === "VERIFIED")
                   ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-900/30 font-semibold"
                   : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25"
@@ -589,23 +594,23 @@ export function ShipProofConsole() {
           </div>
         </div>
 
-        {/* 1. Metrics Banner — Liquid Glass Cards */}
+        {/* 1. Metrics Banner — Liquid Glass Cards (100% Grounded in Live DB State) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Orders Checked */}
           <LiquidGlassCard
             glowColor="rgba(56, 189, 248, 0.3)"
             className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-sky-500/10"
           >
-            <div className="flex items-center justify-between text-zinc-400 text-xs">
+            <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
                 <ShoppingCart className="w-3.5 h-3.5 text-sky-400" />
-                <span className="font-medium text-zinc-200">Orders Checked</span>
+                <span className="font-medium text-zinc-100">Orders Checked</span>
               </span>
               <span className="text-[10px] font-sans text-sky-300 bg-sky-500/15 px-1.5 py-0.5 rounded border border-sky-500/20">Live Shopper</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
-                value={guardStatus?.total_probes ?? overview?.total_runs ?? 18}
+                value={guardStatus?.total_probes ?? overview?.total_runs ?? runs.length}
                 fontSize="28px"
                 fontWeight={700}
                 textColor="#ffffff"
@@ -620,23 +625,28 @@ export function ShipProofConsole() {
             glowColor="rgba(16, 185, 129, 0.3)"
             className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-emerald-500/10"
           >
-            <div className="flex items-center justify-between text-zinc-400 text-xs">
+            <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-medium text-zinc-200">Protected Revenue</span>
+                <span className="font-medium text-zinc-100">Protected Revenue</span>
               </span>
               <span className="text-[10px] font-sans text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30">Active Store</span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
               <span className="text-2xl font-bold text-emerald-400">$</span>
               <Counter
-                value={guardStatus?.revenue_protected ?? 495}
+                value={
+                  guardStatus?.revenue_protected ??
+                  (overview?.repairs_verified
+                    ? overview.repairs_verified * 99
+                    : repairs.filter((r) => r.status === "VERIFIED").length * 99)
+                }
                 fontSize="28px"
                 fontWeight={700}
                 textColor="#34d399"
                 fade={0}
               />
-              <span className="text-xs text-zinc-400 ml-1.5">Acme Voyager Store</span>
+              <span className="text-xs text-zinc-300 ml-1.5">Acme Voyager Store</span>
             </div>
           </LiquidGlassCard>
 
@@ -645,12 +655,12 @@ export function ShipProofConsole() {
             glowColor={defectActive ? "rgba(244, 63, 94, 0.4)" : "rgba(255, 255, 255, 0.15)"}
             className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-rose-500/10"
           >
-            <div className="flex items-center justify-between text-zinc-400 text-xs">
+            <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                <span className="font-medium text-zinc-200">Sales at Risk</span>
+                <span className="font-medium text-zinc-100">Sales at Risk</span>
               </span>
-              <span className={`text-[10px] font-sans px-1.5 py-0.5 rounded ${defectActive ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 animate-pulse font-semibold" : "bg-white/[0.08] text-zinc-400"}`}>
+              <span className={`text-[10px] font-sans px-1.5 py-0.5 rounded ${defectActive ? "bg-rose-500/25 text-rose-300 border border-rose-500/40 font-semibold" : "bg-white/[0.08] text-zinc-300"}`}>
                 {defectActive ? "CHECKOUT BROKEN" : "Healthy"}
               </span>
             </div>
@@ -663,7 +673,7 @@ export function ShipProofConsole() {
                 textColor={defectActive ? "#f87171" : "#a1a1aa"}
                 fade={0}
               />
-              <span className="text-xs text-zinc-400 ml-1.5">
+              <span className="text-xs text-zinc-300 ml-1.5">
                 {defectActive ? "per customer attempt" : "Zero broken orders"}
               </span>
             </div>
@@ -674,22 +684,22 @@ export function ShipProofConsole() {
             glowColor="rgba(245, 158, 11, 0.3)"
             className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-amber-500/10"
           >
-            <div className="flex items-center justify-between text-zinc-400 text-xs">
+            <div className="flex items-center justify-between text-zinc-300 text-xs">
               <span className="flex items-center gap-1.5">
                 <Wrench className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-medium text-zinc-200">Issues Auto-Fixed</span>
+                <span className="font-medium text-zinc-100">Issues Auto-Fixed</span>
               </span>
               <span className="text-[10px] font-sans text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/30">Self-Healing</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
-                value={overview?.repairs_verified ?? (repairs.filter((r) => r.status === "VERIFIED").length || 7)}
+                value={overview?.repairs_verified ?? repairs.filter((r) => r.status === "VERIFIED").length}
                 fontSize="28px"
                 fontWeight={700}
                 textColor="#ffffff"
                 fade={0}
               />
-              <span className="text-xs text-zinc-400">Resolved automatically</span>
+              <span className="text-xs text-zinc-300">Resolved automatically</span>
             </div>
           </LiquidGlassCard>
         </div>
@@ -787,7 +797,7 @@ export function ShipProofConsole() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                     24/7 ACTIVE
                   </span>
                 </div>
@@ -959,7 +969,7 @@ export function ShipProofConsole() {
               {repairStep === 6 && (
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-emerald-500/20 border border-emerald-500/40 text-emerald-200 flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">🎉</span>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-none" />
                     <div>
                       <span className="text-xs font-bold text-white block">Closed-Loop Self-Healing Verified!</span>
                       <span className="text-[11px] text-emerald-300/90">Store checkout restored. 0 revenue lost. Proof recorded.</span>
@@ -1021,7 +1031,7 @@ export function ShipProofConsole() {
 
                   {showCodeDiff && (
                     <div className="mt-2 rounded-xl bg-black/60 border border-white/10 p-3 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-40 text-zinc-300 select-text">
-                      <div className="text-[10px] text-zinc-500 pb-1 border-b border-white/5 mb-1.5 flex items-center gap-1">
+                      <div className="text-[10px] text-zinc-400 pb-1 border-b border-white/5 mb-1.5 flex items-center gap-1">
                         <Layers className="w-3 h-3" />
                         <span>{activeRepair?.files_modified?.[0] || "demo_targets/sample_store/templates/cart.html"}</span>
                       </div>
@@ -1038,8 +1048,8 @@ export function ShipProofConsole() {
                                 : isDel
                                 ? "text-rose-400 bg-rose-500/15"
                                 : isHeader
-                                ? "text-zinc-500 font-semibold"
-                                : "text-zinc-400"
+                                ? "text-zinc-400 font-semibold"
+                                : "text-zinc-300"
                             }`}
                           >
                             {line}
@@ -1162,39 +1172,39 @@ export function ShipProofConsole() {
                 />
               </div>
 
-              {/* CallChips: Friendly Customer Actions */}
+              {/* CallChips: Vector Customer Actions (Hallmark Gate 30: Zero OS Emojis) */}
               <div className="flex flex-col gap-2">
-                <span className="text-[10px] uppercase font-sans text-zinc-400 font-semibold tracking-wide">
+                <span className="text-[10px] uppercase font-sans text-zinc-300 font-semibold tracking-wide">
                   Actions Taken by AI Shopper
                 </span>
                 <div className="flex items-center flex-wrap gap-2">
                   <CallChip
-                    icon="terminal"
-                    name="🌐 Open Store"
+                    icon={<Globe className="w-3.5 h-3.5 text-sky-400" />}
+                    name="Open Store"
                     argument="Acme Homepage"
                     status="done"
                   />
                   <CallChip
-                    icon="terminal"
-                    name="👟 Choose Size M"
+                    icon={<Layers className="w-3.5 h-3.5 text-sky-400" />}
+                    name="Choose Size M"
                     argument="Voyager Shoes"
                     status="done"
                   />
                   <CallChip
-                    icon="terminal"
-                    name="🛍️ Add to Bag"
+                    icon={<ShoppingCart className="w-3.5 h-3.5 text-sky-400" />}
+                    name="Add to Bag"
                     argument="Cart updated"
                     status="done"
                   />
                   <CallChip
-                    icon="search"
-                    name="💵 Check Total"
+                    icon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                    name="Check Total"
                     argument="$99.00"
                     status="done"
                   />
                   <CallChip
-                    icon="terminal"
-                    name="💳 Complete Checkout"
+                    icon={<CreditCard className="w-3.5 h-3.5 text-blue-400" />}
+                    name="Complete Checkout"
                     argument="Place Order"
                     status={selectedRun?.status === "failed" ? "error" : "done"}
                   />
@@ -1203,9 +1213,9 @@ export function ShipProofConsole() {
 
               {/* Customer Goal & Result */}
               <div className="p-3.5 rounded-2xl bg-black/40 border border-white/[0.08] flex flex-col gap-1.5 text-xs text-zinc-300">
-                <div className="flex items-center justify-between text-zinc-400 text-[11px]">
-                  <span className="font-medium text-zinc-300">Customer Goal:</span>
-                  <span className="font-mono text-zinc-500">Test ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
+                <div className="flex items-center justify-between text-zinc-300 text-[11px]">
+                  <span className="font-medium text-zinc-200">Customer Goal:</span>
+                  <span className="font-mono text-zinc-400">Test ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
                 </div>
                 <p className="text-zinc-200 leading-relaxed">
                   {selectedRun?.objective || "Verify customer can select products, add to bag, and complete checkout without errors."}

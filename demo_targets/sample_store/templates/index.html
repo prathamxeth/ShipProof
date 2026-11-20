@@ -3,27 +3,27 @@
 {% block content %}
 <div style="display: flex; flex-direction: column; gap: 2rem;">
   <!-- Hero Banner Liquid Glass Card -->
-  <div class="card" style="padding: 2.25rem 2.5rem; background: linear-gradient(135deg, rgba(24, 99, 220, 0.15), rgba(11, 13, 22, 0.75));">
-    <div class="card-content" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem;">
-      <div style="max-width: 600px;">
-        <div style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+  <div class="card store-hero-card">
+    <div class="card-content store-hero-content">
+      <div class="store-hero-text">
+        <div class="store-hero-badge-row">
           <span class="badge badge-live">
             <span class="badge-live-dot"></span>
             Live Demo Store
           </span>
-          <span style="font-size: 0.8rem; color: #94a3b8;">Monitored 24/7 by Autonomous AI Shoppers</span>
+          <span class="catalog-section-subtitle">Monitored 24/7 by Autonomous AI Shoppers</span>
         </div>
-        <h1 id="page-title" style="font-size: 2.1rem; font-weight: 800; letter-spacing: -0.03em; color: #ffffff; line-height: 1.2; margin-bottom: 0.6rem;">
+        <h1 id="page-title" class="store-hero-title">
           Acme Voyager Performance Collection
         </h1>
-        <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+        <p class="store-hero-desc">
           Real interactive e-commerce sandbox with full shopping cart, size selector, and checkout flows. Monitored continuously by ShipProof.
         </p>
       </div>
 
       <div style="display: flex; gap: 0.75rem; align-items: center;">
         <a href="/cart" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.92rem;">
-          <span>🛍️ View Shopping Bag ({{ cart_count }})</span>
+          <span>View Shopping Bag ({{ cart_count }})</span>
         </a>
       </div>
     </div>
@@ -31,41 +31,41 @@
 
   <!-- Product Catalog Grid -->
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; padding: 0 0.25rem;">
-      <h2 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+    <div class="catalog-section-head">
+      <h2 class="catalog-section-title">
         <span>Featured Products</span>
         <span class="badge" style="font-size: 0.65rem;">{{ products|length }} Items</span>
       </h2>
-      <span style="font-size: 0.8rem; color: #94a3b8;">Instant Add-to-Bag &amp; Live Checkout</span>
+      <span class="catalog-section-subtitle">Instant Add-to-Bag &amp; Live Checkout</span>
     </div>
 
     <div class="grid">
       {% for p in products %}
-        <div class="card" id="product-card-{{ p.id }}" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="card product-card" id="product-card-{{ p.id }}">
           <div class="card-content">
             <!-- Icon Display -->
-            <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1.25rem; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);">
+            <div class="product-icon-wrap">
               {{ p.icon }}
             </div>
 
             <!-- Title & Link -->
             <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.01em;">
-              <a href="/product/{{ p.id }}" style="color: #ffffff; text-decoration: none; transition: color 0.2s;" id="product-link-{{ p.id }}" onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#ffffff'">
+              <a href="/product/{{ p.id }}" class="product-title-link" id="product-link-{{ p.id }}">
                 {{ p.name }}
               </a>
             </h3>
 
             <!-- Description -->
-            <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.5rem;">
+            <p class="product-desc">
               {{ p.description }}
             </p>
           </div>
 
           <!-- Price & Action Footer -->
-          <div class="card-content" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+          <div class="card-content product-card-footer">
             <div>
-              <span style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #94a3b8; font-weight: 600;">Price</span>
-              <span style="font-size: 1.35rem; font-weight: 800; color: #34d399; letter-spacing: -0.02em;">
+              <span class="product-price-label">Price</span>
+              <span class="product-price-val">
                 ${{ "%.2f"|format(p.price) }}
               </span>
             </div>

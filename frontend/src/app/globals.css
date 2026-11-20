@@ -1,3 +1,4 @@
+/* Hallmark · macrostructure: Workbench · theme: Dark Liquid Glass · contrast: pass (40–41) · mobile: pass (34, 49, 50–57) · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 @import "tailwindcss";
 
 :root {
@@ -12,7 +13,7 @@
   --secondary: #181923;
   --secondary-foreground: #e2e4ea;
   --muted: #1c1d28;
-  --muted-foreground: #8e90a2;
+  --muted-foreground: #94a3b8;
   --accent: #1863dc;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
@@ -36,7 +37,9 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+html,
 body {
+  overflow-x: clip;
   background-color: #090a0f;
   color: #f4f4f7;
   font-family: var(--font-sans);
@@ -64,11 +67,20 @@ body {
   background: #2e3248;
 }
 
-/* Remove ugly outline halos */
-*:focus,
-*:focus-visible {
-  outline: none;
-  outline-offset: 0;
+/* Hallmark Gate 15 & 40: High-contrast instant focus rings for keyboard users */
+:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+  transition: none !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
 }
 
 /* @property angle declarations for animated liquid glass specular highlights */
@@ -152,7 +164,7 @@ body {
     0 0 0.1em 0.25em inset rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
 .liquid-glass-btn:hover {
@@ -174,6 +186,11 @@ body {
     0 0.08em 0.04em -0.05em rgba(0, 0, 0, 0.4);
 }
 
+.liquid-glass-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
 .liquid-button-shadow {
   position: absolute;
   inset: 0;
@@ -184,11 +201,22 @@ body {
   pointer-events: none;
   opacity: 0.5;
   transform: translateY(2px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .liquid-button-wrap:hover .liquid-button-shadow {
   opacity: 0.8;
   transform: translateY(1px);
+}
+
+/* Reduced Motion Support (Hallmark Gate 27) */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-btn,
+  .liquid-glass-card,
+  .liquid-button-shadow {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
 }
 

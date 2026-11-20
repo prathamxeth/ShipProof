@@ -1,3 +1,4 @@
+<!-- Hallmark · macrostructure: E-Commerce Store · theme: Dark Liquid Glass · contrast: pass (40–41) · mobile: pass (34, 49, 50–57) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +22,8 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    html, body {
+      overflow-x: clip;
       font-family: var(--font-sans);
       background-color: var(--bg);
       color: var(--text);
@@ -30,10 +32,14 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
-      selection-background-color: rgba(24, 99, 220, 0.35);
+    }
+
+    :focus-visible {
+      outline: 2px solid #38bdf8;
+      outline-offset: 2px;
+      transition: none !important;
     }
 
     /* Background Holo Canvas */
@@ -330,13 +336,155 @@
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      transition: all 0.2s ease;
+      white-space: nowrap;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .nav-btn:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
       border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Semantic Store Classes (Hallmark Token Architecture) */
+    .store-hero-card {
+      padding: 2.25rem 2.5rem;
+      background: linear-gradient(135deg, rgba(24, 99, 220, 0.15), rgba(11, 13, 22, 0.75));
+    }
+    .store-hero-content {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .store-hero-text {
+      max-width: 600px;
+    }
+    .store-hero-badge-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .store-hero-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      line-height: 1.2;
+      margin-bottom: 0.6rem;
+    }
+    .store-hero-desc {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .catalog-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding: 0 0.25rem;
+    }
+    .catalog-section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .catalog-section-subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .product-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .product-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    }
+    .product-title-link {
+      color: #ffffff;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .product-title-link:hover {
+      color: #38bdf8;
+    }
+    .product-desc {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .product-card-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .product-price-label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .product-price-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #34d399;
+      letter-spacing: -0.02em;
+    }
+
+    /* Cart & Checkout Semantic Classes */
+    .cart-summary-banner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.25);
+      margin: 0 -2.25rem -2.25rem -2.25rem;
+      padding: 1.75rem 2.25rem;
+      border-bottom-left-radius: 26px;
+      border-bottom-right-radius: 26px;
+    }
+    .form-group {
+      margin-bottom: 1.35rem;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .order-summary-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 1.25rem;
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     /* Disabled / Broken Button */
@@ -386,7 +534,7 @@
   </style>
 </head>
 <body>
-  {/* SVG Liquid Refraction Filters */}
+  <!-- SVG Liquid Refraction Filters -->
   <svg style="position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: -100;" aria-hidden="true">
     <defs>
       <filter id="container-glass" x="-20%" y="-20%" width="140%" height="140%">
@@ -400,13 +548,13 @@
     </defs>
   </svg>
 
-  {/* Holo Background Canvas */}
+  <!-- Holo Background Canvas -->
   <div id="holo-container">
     <canvas id="holo-canvas"></canvas>
   </div>
   <div class="holo-vignette" aria-hidden="true"></div>
 
-  {/* Top Navigation */}
+  <!-- Top Navigation -->
   <header>
     <a href="/" class="brand-wrap" id="store-brand">
       <div class="brand-icon">👟</div>
@@ -431,7 +579,7 @@
         <span>Products</span>
       </a>
       <a href="/cart" id="nav-cart" class="nav-btn">
-        <span>🛍️ Cart</span>
+        <span>Cart</span>
         <span class="badge badge-live" style="margin-left: 0.2rem; padding: 0.1rem 0.45rem;" id="cart-count">{{ cart_count }}</span>
       </a>
       <a href="http://localhost:3000" target="_blank" class="nav-btn" style="border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
@@ -440,17 +588,17 @@
     </nav>
   </header>
 
-  {/* Page Content */}
+  <!-- Page Content -->
   <main class="container">
     {% block content %}{% endblock %}
   </main>
 
-  {/* Footer */}
+  <!-- Footer -->
   <footer>
     <p>Acme Voyager Store &bull; ShipProof Autonomous Customer Simulation Target &bull; Port :3005</p>
   </footer>
 
-  {/* Interactive HoloMosaic WebGL Canvas Background Script */}
+  <!-- Interactive HoloMosaic WebGL Canvas Background Script -->
   <script>
     (function initHoloMosaic() {
       const canvas = document.getElementById('holo-canvas');

@@ -35,7 +35,7 @@ export function LiquidToggle({
         aria-checked={checked}
         disabled={disabled}
         onClick={handleClick}
-        className={`liquid-toggle relative cursor-pointer outline-none transition-all duration-300 ${
+        className={`liquid-toggle relative cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 focus-visible:ring-2 focus-visible:ring-sky-400/40 ${
           disabled ? 'opacity-40 cursor-not-allowed' : ''
         }`}
         style={
@@ -46,12 +46,13 @@ export function LiquidToggle({
             '--complete': checked ? '100' : '0',
             width: `${width}px`,
             height: `${height}px`,
+            transition: 'opacity 0.15s ease',
           } as React.CSSProperties
         }
       >
         {/* Background track & indicator */}
         <div
-          className="indicator absolute inset-0 rounded-full transition-colors duration-300"
+          className="indicator absolute inset-0 rounded-full"
           style={{
             background: checked
               ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
@@ -59,6 +60,7 @@ export function LiquidToggle({
             boxShadow: checked
               ? '0 0 14px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
               : 'inset 0 1px 2px rgba(0, 0, 0, 0.5)',
+            transition: 'background 0.2s ease, box-shadow 0.2s ease',
           }}
         />
 
@@ -68,7 +70,7 @@ export function LiquidToggle({
           style={{ filter: 'url(#goo)' }}
         >
           <div
-            className="liquid__track absolute top-0 bottom-0 rounded-full transition-all duration-300 ease-out"
+            className="liquid__track absolute top-0 bottom-0 rounded-full"
             style={{
               left: checked ? `${width - height + border}px` : `${border}px`,
               width: `${height - border * 2}px`,
@@ -77,13 +79,14 @@ export function LiquidToggle({
               background: checked ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
               boxShadow:
                 '0 2px 6px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9)',
+              transition: 'left 0.2s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease',
             }}
           />
         </div>
 
         {/* Specular Liquid Bead Highlight */}
         <div
-          className="absolute top-0 bottom-0 rounded-full pointer-events-none transition-all duration-300 ease-out"
+          className="absolute top-0 bottom-0 rounded-full pointer-events-none"
           style={{
             left: checked ? `${width - height + border}px` : `${border}px`,
             width: `${height - border * 2}px`,
@@ -91,6 +94,7 @@ export function LiquidToggle({
             margin: 'auto 0',
             boxShadow:
               'inset 1px 1px 2px rgba(255,255,255,0.8), inset -1px -1px 2px rgba(0,0,0,0.2)',
+            transition: 'left 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
           }}
         />
       </button>

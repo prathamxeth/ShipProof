@@ -12,35 +12,35 @@
           256-Bit SSL Encrypted &bull; Instant Order Placement
         </p>
       </div>
-      <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-        🔒
+      <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #34d399;">
+        ✓
       </div>
     </div>
 
     <form action="/checkout" method="POST" id="checkout-form">
-      <div style="margin-bottom: 1.35rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #e2e8f0;" for="full_name">
+      <div class="form-group">
+        <label class="form-label" for="full_name">
           Customer Full Name
         </label>
         <input type="text" id="full_name" name="full_name" required value="Alex Johnson" placeholder="Enter your full name">
       </div>
 
-      <div style="margin-bottom: 1.35rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #e2e8f0;" for="email">
+      <div class="form-group">
+        <label class="form-label" for="email">
           Email Address
         </label>
         <input type="email" id="email" name="email" required value="alex@example.com" placeholder="Enter your email address">
       </div>
 
-      <div style="margin-bottom: 1.75rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #e2e8f0;" for="address">
+      <div class="form-group" style="margin-bottom: 1.75rem;">
+        <label class="form-label" for="address">
           Shipping Address
         </label>
         <input type="text" id="address" name="address" required value="123 AI Boulevard, Suite 400, San Francisco, CA" placeholder="Enter shipping address">
       </div>
 
       <!-- Order Total Summary Box -->
-      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); padding: 1.25rem; border-radius: 16px; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+      <div class="order-summary-box">
         <div>
           <span style="font-size: 0.82rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; display: block;">Total Due Now</span>
           <span style="font-size: 0.75rem; color: #64748b;">Includes standard taxes &amp; shipping</span>
@@ -51,7 +51,7 @@
       </div>
 
       <button type="submit" class="btn btn-primary" id="place-order-btn" style="width: 100%; padding: 0.95rem; font-size: 1.05rem;">
-        <span>💳 Place Order Now</span>
+        <span>Place Order Now</span>
       </button>
     </form>
   </div>
