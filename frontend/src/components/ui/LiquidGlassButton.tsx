@@ -44,37 +44,37 @@ export const LiquidGlassButton = React.forwardRef<
     }[size];
 
     // Variant colors: all variants use EMPTY liquid glass background with zero colored fills!
-    // The variant only tunes the border specular tint and focus ring.
+    // The variant only tunes text color and focus ring.
     const variantConfig = {
       primary: {
         text: 'text-white',
-        border: 'border-white/20',
-        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
-        badgeBg: 'bg-white/[0.1] text-white border-white/25',
+        border: 'border-white/25',
+        bg: 'bg-transparent',
+        badgeBg: 'bg-white/[0.08] text-white border-white/25',
         shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
       },
       glass: {
         text: 'text-zinc-100',
-        border: 'border-white/16',
-        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
-        badgeBg: 'bg-white/[0.1] text-zinc-100 border-white/20',
+        border: 'border-white/20',
+        bg: 'bg-transparent',
+        badgeBg: 'bg-white/[0.08] text-zinc-100 border-white/20',
         shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
       },
       danger: {
-        text: 'text-zinc-100',
+        text: 'text-rose-200',
         border: 'border-white/20',
-        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
-        badgeBg: 'bg-white/[0.1] text-rose-300 border-rose-400/30',
+        bg: 'bg-transparent',
+        badgeBg: 'bg-white/[0.08] text-rose-300 border-rose-400/30',
         shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-rose-400 focus-visible:ring-rose-400/40',
       },
       emerald: {
-        text: 'text-zinc-100',
+        text: 'text-emerald-200',
         border: 'border-white/20',
-        bg: 'bg-gradient-to-r from-white/[0.08] via-white/[0.18] to-white/[0.08]',
-        badgeBg: 'bg-white/[0.1] text-emerald-300 border-emerald-400/30',
+        bg: 'bg-transparent',
+        badgeBg: 'bg-white/[0.08] text-emerald-300 border-emerald-400/30',
         shadow: 'shadow-white/5',
         focusRing: 'focus-visible:outline-emerald-400 focus-visible:ring-emerald-400/40',
       },

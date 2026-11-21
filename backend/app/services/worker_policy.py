@@ -170,7 +170,7 @@ if [ -d "/kane-auth" ]; then
     cp -r /kane-auth/* /home/kane/.testmuai/kaneai/ 2>/dev/null || true
     mkdir -p /home/kane/.testmuai/kaneai/sessions
     chown -R 1001:1001 /home/kane
-    chmod -R u=rwX,go-rwx /home/kane/.testmuai/kaneai
+    chmod -R 777 /home/kane/.testmuai
 fi
 
 # Prepare IPC evidence staging mount if IPC volume is mounted

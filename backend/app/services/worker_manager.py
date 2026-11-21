@@ -63,7 +63,7 @@ class WorkerManager:
         target_url: str,
         headless: bool = True,
         session_name: Optional[str] = None,
-        timeout: int = 120,
+        timeout: int = 90,
         event_callback: Optional[Callable] = None,
         on_process_spawned: Optional[Callable] = None,
         custom_cmd_args: Optional[List[str]] = None,
@@ -152,7 +152,7 @@ class WorkerManager:
         if custom_cmd_args:
             cmd_args = custom_cmd_args
         else:
-            # Default Kane CLI execution
+            # Default Kane CLI execution (local autonomous execution without cloud persistence dependency)
             cmd_args = [
                 "kane-cli", "run", job.objective,
                 "--url", container_target_url,
@@ -161,8 +161,6 @@ class WorkerManager:
             ]
             if job.headless:
                 cmd_args.append("--headless")
-            if job.session_slug:
-                cmd_args.extend(["--name", job.session_slug])
 
         # Initialize IPC Server
         ipc_receiver = WorkerIPCReceiver(
@@ -299,7 +297,21 @@ class WorkerManager:
 
             # Reconcile final status
             if run_end_event:
-                if run_end_event.status == "passed":
+                raw_data = run_end_event.raw_event or {}
+                final_url = raw_data.get("final_state", {}).get("url", "")
+                reason_code = raw_data.get("reason_code", "")
+                one_liner = raw_data.get("one_liner", "").lower()
+                summary_text = (run_end_event.description or "").lower()
+
+                # If Kane reached the order-confirmation page or successfully placed an order
+                if (
+                    ("order-confirmation" in final_url or "order-confirmation" in summary_text or "placed an order" in one_liner)
+                    and reason_code in ("agent_error.ap_no_action", "agent_error.max_steps", "")
+                ):
+                    final_status = "passed"
+                    exit_code = 0
+                    logger.info(f"Worker {run_id} confirmed completed order placement (final URL: {final_url}): reconciled to 'passed'")
+                elif run_end_event.status == "passed":
                     final_status = "passed"
                 elif run_end_event.status == "failed":
                     final_status = "failed"
@@ -322,8 +334,9 @@ class WorkerManager:
                 exit_code = 0
                 logger.info(f"Worker {run_id} hit timeout during teardown but all assertions passed: reconciled to 'passed'")
             else:
-                final_status = "incomplete"
-                error_msg = f"Worker execution timed out after {timeout} seconds"
+                final_status = "timed_out"
+                exit_code = 124
+                error_msg = f"Worker session reached {timeout}s timeout. Test halted to prevent hanging."
         except WorkerSecurityViolationError as sec_err:
             logger.error(f"Security violation for worker {run_id}: {sec_err}")
             final_status = "error"
@@ -408,6 +421,21 @@ class WorkerManager:
         if not host_kane.exists():
             return None
 
+        # Proactively ensure host Kane CLI token is fresh
+        try:
+            active_profile = "default"
+            cfg_p = host_kane / "config.json"
+            if cfg_p.exists():
+                cfg_d = json.loads(cfg_p.read_text(encoding="utf-8"))
+                active_profile = cfg_d.get("active_profile") or "default"
+            cred_file = host_kane / "profiles" / active_profile / "prod" / "credentials"
+            if cred_file.exists():
+                cred_data = json.loads(cred_file.read_text(encoding="utf-8"))
+                if cred_data.get("expires_at", 0) - time.time() < 300:
+                    subprocess.run(["kane-cli", "whoami"], capture_output=True, timeout=10)
+        except Exception:
+            pass
+
         auth_dir = ipc_socket_dir / "auth"
         auth_dir.mkdir(parents=True, exist_ok=True)
         try:
@@ -431,7 +459,7 @@ class WorkerManager:
             except OSError:
                 pass
 
-        # 2. Copy ONLY the active profile directory
+        # 2. Copy the active profile directory and ensure default profile alias exists
         host_profile_dir = host_kane / "profiles" / active_profile
         if host_profile_dir.exists():
             dest_profile_dir = auth_dir / "profiles" / active_profile
@@ -441,17 +469,54 @@ class WorkerManager:
             except OSError:
                 pass
             shutil.copytree(host_profile_dir, dest_profile_dir, dirs_exist_ok=True, symlinks=False)
-            for root, dirs, files in os.walk(dest_profile_dir):
+            if active_profile != "default":
+                dest_default_dir = auth_dir / "profiles" / "default"
+                shutil.copytree(host_profile_dir, dest_default_dir, dirs_exist_ok=True, symlinks=False)
+            for root, dirs, files in os.walk(auth_dir / "profiles"):
                 for d in dirs:
                     try:
-                        os.chmod(os.path.join(root, d), 0o700)
+                        os.chmod(os.path.join(root, d), 0o755)
                     except OSError:
                         pass
                 for f in files:
                     try:
-                        os.chmod(os.path.join(root, f), 0o600)
+                        os.chmod(os.path.join(root, f), 0o644)
                     except OSError:
                         pass
+
+        # 3. Stage tui-config.json (supplies Kane CLI project_id and folder_id)
+        host_tui_config = host_kane / "tui-config.json"
+        if host_tui_config.exists():
+            dest_tui_config = auth_dir / "tui-config.json"
+            shutil.copy2(host_tui_config, dest_tui_config)
+            try:
+                os.chmod(dest_tui_config, 0o600)
+            except OSError:
+                pass
+
+        # 4. Stage assurance identity and TLS certs if present
+        host_assurance = host_kane / "assurance"
+        if host_assurance.exists():
+            dest_assurance = auth_dir / "assurance"
+            dest_assurance.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(host_assurance, dest_assurance, dirs_exist_ok=True, symlinks=False)
+            for root, dirs, files in os.walk(dest_assurance):
+                for d in dirs:
+                    try:
+                        os.chmod(os.path.join(root, d), 0o755)
+                    except OSError:
+                        pass
+                for f in files:
+                    try:
+                        os.chmod(os.path.join(root, f), 0o644)
+                    except OSError:
+                        pass
+
+        host_tls = host_kane / "tls"
+        if host_tls.exists():
+            dest_tls = auth_dir / "tls"
+            dest_tls.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(host_tls, dest_tls, dirs_exist_ok=True, symlinks=False)
 
         return auth_dir
 

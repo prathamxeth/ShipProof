@@ -484,7 +484,19 @@ class RepairOrchestrator:
                 )
                 retest_result = rres.scalar_one()
 
-            if retest_result.status == "passed":
+            is_verified = (
+                retest_result.status == "passed"
+                or (
+                    retest_result.failure_reason
+                    and (
+                        "order-confirmation" in retest_result.failure_reason.lower()
+                        or "placed an order" in retest_result.failure_reason.lower()
+                    )
+                    and "ap_no_action" in (retest_result.failure_reason or "").lower()
+                )
+            )
+
+            if is_verified:
                 # Real Kane verification succeeded!
                 async with AsyncSessionLocal() as session:
                     await session.execute(

@@ -68,23 +68,23 @@ interface Engine {
 
 const THEMES: Record<'dark' | 'light', Record<string, string>> = {
   dark: {
-    '--al-frame': 'rgba(38, 35, 46, 0.66)',
-    '--al-frame-edge': 'rgba(255, 255, 255, 0.08)',
-    '--al-frame-highlight': 'rgba(255, 255, 255, 0.07)',
-    '--al-frame-shadow': '0 22px 44px -20px rgba(0, 0, 0, 0.8), 0 6px 16px -8px rgba(0, 0, 0, 0.5)',
-    '--al-tile': 'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05))',
+    '--al-frame': 'transparent',
+    '--al-frame-edge': 'rgba(255, 255, 255, 0.12)',
+    '--al-frame-highlight': 'rgba(255, 255, 255, 0.35)',
+    '--al-frame-shadow': 'inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 8px 24px -8px rgba(0, 0, 0, 0.3)',
+    '--al-tile': 'linear-gradient(-75deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04))',
     '--al-tile-edge': 'rgba(255, 255, 255, 0.16)',
-    '--al-tile-highlight': 'rgba(255, 255, 255, 0.35)',
-    '--al-tile-shadow': 'inset 0 0.125em 0.125em rgba(0, 0, 0, 0.15), inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.4), 0 0.25em 0.125em -0.125em rgba(0, 0, 0, 0.3)',
-    '--al-well': 'rgba(255, 255, 255, 0.08)',
+    '--al-tile-highlight': 'rgba(255, 255, 255, 0.45)',
+    '--al-tile-shadow': 'inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 16px -4px rgba(0, 0, 0, 0.25)',
+    '--al-well': 'rgba(255, 255, 255, 0.04)',
     '--al-ink': '#f4f4f5',
-    '--al-muted': 'rgba(244, 244, 245, 0.55)',
-    '--al-thumb': 'rgba(255, 255, 255, 0.16)',
-    '--al-ring': 'rgba(244, 244, 245, 0.3)',
-    '--al-ring-fill': 'rgba(244, 244, 245, 0.05)',
+    '--al-muted': 'rgba(244, 244, 245, 0.65)',
+    '--al-thumb': 'rgba(255, 255, 255, 0.2)',
+    '--al-ring': 'rgba(255, 255, 255, 0.4)',
+    '--al-ring-fill': 'rgba(255, 255, 255, 0.06)',
     '--al-hover': 'brightness(1.12)',
-    '--al-press': 'brightness(0.85)',
-    '--al-active': 'brightness(1.16)'
+    '--al-press': 'brightness(0.92)',
+    '--al-active': 'brightness(1.15)'
   },
   light: {
     '--al-frame': 'rgba(240, 240, 243, 0.8)',

@@ -21,8 +21,8 @@ class RevenueGuardService:
         self.interval_seconds: int = 120  # Default 2 minutes (favorable balance)
         self.target_url: str = "http://127.0.0.1:3005"
         self.objective: str = (
-            "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', "
-            "and verify that 'Secure Checkout' is displayed."
+            "Click 'Add to Cart', in the cart click 'Proceed to Checkout', "
+            "and on the checkout page click 'Place Order Now'."
         )
         self.last_probe_time: Optional[float] = None
         self.next_probe_time: Optional[float] = None
@@ -158,7 +158,7 @@ class RevenueGuardService:
                 objective=self.objective,
                 target_url=self.target_url,
                 headless=True,
-                timeout=120
+                timeout=settings.KANE_DEFAULT_TIMEOUT
             )
 
             # Query finalized run state

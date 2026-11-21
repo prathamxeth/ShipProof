@@ -201,7 +201,7 @@ class RunCreate(BaseModel):
         json_schema_extra={"example": "closed_loop"}
     )
     headless: Optional[bool] = Field(default=True, description="Run browser headlessly")
-    timeout: Optional[int] = Field(default=120, ge=10, le=600, description="Process timeout in seconds")
+    timeout: Optional[int] = Field(default=120, ge=1, le=600, description="Process timeout in seconds")
 
 
 class RunSummaryResponse(BaseModel):

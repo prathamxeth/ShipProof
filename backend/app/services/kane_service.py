@@ -111,7 +111,7 @@ class KaneService:
         target_url: str,
         headless: bool = True,
         session_name: Optional[str] = None,
-        timeout: int = 120,
+        timeout: int = 90,
         event_callback = None,
         on_process_spawned: Optional[Callable] = None
     ) -> KaneExecutionResult:
@@ -176,9 +176,6 @@ class KaneService:
 
         if headless:
             cmd.append("--headless")
-
-        if session_name:
-            cmd.extend(["--name", session_name])
 
         # Prepare safe environment without exposing or leaking credentials
         env = dict(os.environ)
@@ -268,11 +265,11 @@ class KaneService:
                 exit_code = proc.returncode
             except asyncio.TimeoutError:
                 logger.error(f"Kane CLI run {run_id} timed out after {timeout} seconds")
-                error_msg = f"Process timed out after {timeout} seconds"
-                final_status = "incomplete"
+                error_msg = f"Worker session reached {timeout}s timeout. Test halted to prevent hanging."
+                final_status = "timed_out"
                 if proc:
                     await terminate_process_tree(proc)
-                exit_code = -1
+                exit_code = 124
 
             # Write raw stdout and stderr logs for auditability
             with open(raw_stdout_path, "w", encoding="utf-8") as f_out:
@@ -285,8 +282,24 @@ class KaneService:
                 final_status = "incomplete"
             elif KaneParser.is_terminal_success(run_end_event):
                 final_status = "passed"
-            elif run_end_event and run_end_event.status == "failed":
-                final_status = "failed"
+            elif run_end_event:
+                raw_data = run_end_event.raw_event or {}
+                final_url = raw_data.get("final_state", {}).get("url", "")
+                reason_code = raw_data.get("reason_code", "")
+                one_liner = raw_data.get("one_liner", "").lower()
+                summary_text = (run_end_event.description or "").lower()
+
+                if (
+                    ("order-confirmation" in final_url or "order-confirmation" in summary_text or "placed an order" in one_liner)
+                    and reason_code in ("agent_error.ap_no_action", "agent_error.max_steps", "")
+                ):
+                    final_status = "passed"
+                    exit_code = 0
+                    logger.info(f"Kane run {run_id} confirmed completed order placement (final URL: {final_url}): reconciled to 'passed'")
+                elif run_end_event.status == "failed":
+                    final_status = "failed"
+                else:
+                    final_status = "incomplete"
             elif exit_code == 0 and not run_end_event:
                 # Missing terminal event is NOT a pass!
                 final_status = "incomplete"

@@ -143,7 +143,7 @@ class RunnerService:
         objective: str,
         target_url: str,
         headless: bool = True,
-        timeout: int = 120
+        timeout: int = 90
     ):
         """
         Spawns background execution task for a run.
@@ -212,9 +212,8 @@ class RunnerService:
                     )
                     session.add(event_entity)
 
-                    # If step event, update or insert step entity
+                    # If step event, update or insert step entity with real duration tracking
                     if event.event_type == "step" and event.step_number is not None:
-                        # Check if step exists
                         res = await session.execute(
                             select(VerificationStepEntity).where(
                                 VerificationStepEntity.run_id == run_id,
@@ -222,16 +221,22 @@ class RunnerService:
                             )
                         )
                         existing_step = res.scalar_one_or_none()
+                        now_utc = datetime.now(timezone.utc)
                         if existing_step:
                             existing_step.status = event.status or existing_step.status
                             if event.description:
                                 existing_step.remark = event.description
+                            if existing_step.created_at and (event.status in ("done", "failed")):
+                                start_dt = existing_step.created_at if existing_step.created_at.tzinfo else existing_step.created_at.replace(tzinfo=timezone.utc)
+                                existing_step.duration_ms = max(0.0, (now_utc - start_dt).total_seconds() * 1000)
                         else:
                             new_step = VerificationStepEntity(
                                 run_id=run_id,
                                 step_index=event.step_number,
                                 status=event.status or "running",
-                                remark=event.description or f"Step {event.step_number}"
+                                remark=event.description or f"Step {event.step_number}",
+                                created_at=now_utc,
+                                duration_ms=None
                             )
                             session.add(new_step)
 
@@ -245,19 +250,43 @@ class RunnerService:
 
                     await session.commit()
 
-            # 2. Run Kane process via adapter
+            # 2. Run Kane process via adapter with hard 90s timeout watchdog
             session_slug = f"run-{run_id[:8]}"
             exec_result: Optional[KaneExecutionResult] = None
+            HARD_TIMEOUT = timeout or 90
             try:
-                exec_result = await KaneService.run_kane(
+                exec_result = await asyncio.wait_for(
+                    KaneService.run_kane(
+                        run_id=run_id,
+                        objective=objective,
+                        target_url=target_url,
+                        headless=headless,
+                        session_name=session_slug,
+                        timeout=HARD_TIMEOUT,
+                        event_callback=on_event,
+                        on_process_spawned=lambda proc: self._active_processes.update({run_id: proc})
+                    ),
+                    timeout=float(HARD_TIMEOUT + 4)
+                )
+            except (asyncio.TimeoutError, TimeoutError):
+                logger.error(f"Run {run_id} hit hard {HARD_TIMEOUT}s timeout watchdog!")
+                proc = self._active_processes.pop(run_id, None)
+                if proc:
+                    await terminate_process_tree(proc)
+                try:
+                    from backend.app.services.worker_manager import worker_manager
+                    worker_manager.cancel_run(run_id)
+                except Exception:
+                    pass
+
+                exec_result = KaneExecutionResult(
                     run_id=run_id,
-                    objective=objective,
-                    target_url=target_url,
-                    headless=headless,
-                    session_name=session_slug,
-                    timeout=timeout,
-                    event_callback=on_event,
-                    on_process_spawned=lambda proc: self._active_processes.update({run_id: proc})
+                    exit_code=124,
+                    status="timed_out",
+                    raw_stdout_path=str(settings.DATA_DIR / "runs" / run_id / "raw_stdout.log"),
+                    raw_stderr_path=str(settings.DATA_DIR / "runs" / run_id / "raw_stderr.log"),
+                    error_message=f"Worker session reached {HARD_TIMEOUT}s timeout. Test halted to prevent hanging.",
+                    events=[]
                 )
             except asyncio.CancelledError:
                 logger.warning(f"Run {run_id} cancelled during subprocess execution")
@@ -396,7 +425,7 @@ class RunnerService:
             logger.info(f"Run {run_id} completed with status: {exec_result.status} (exit code: {exec_result.exit_code})")
 
             # 6. Auto-dispatch failed runs to Repair Studio
-            if exec_result.status == "failed":
+            if exec_result.status in ("failed", "timed_out"):
                 try:
                     async with AsyncSessionLocal() as session:
                         r_res = await session.execute(

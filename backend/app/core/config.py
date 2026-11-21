@@ -45,7 +45,7 @@ class Settings(BaseModel):
     # Kane CLI Configuration
     KANE_CLI_PATH: str = Field(default=os.getenv("KANE_CLI_PATH", "/opt/homebrew/bin/kane-cli"))
     KANE_CLI_USER_AGENT: str = Field(default="shipproof-antigravity")
-    KANE_DEFAULT_TIMEOUT: int = Field(default=int(os.getenv("KANE_DEFAULT_TIMEOUT", "120")))
+    KANE_DEFAULT_TIMEOUT: int = Field(default=int(os.getenv("KANE_DEFAULT_TIMEOUT", "90")))
     KANE_EGRESS_PROXY: Optional[str] = Field(default=os.getenv("KANE_EGRESS_PROXY"))
     
     # Antigravity CLI Configuration

@@ -62,12 +62,12 @@ export function LiquidGlassCard({
           }}
         />
 
-        {/* Optical Refraction & Glass Displacement Backdrop — Clean Empty Liquid Glass with NO Colored Fills */}
+        {/* Optical Refraction & Glass Displacement Backdrop — Clean Empty Liquid Glass with Zero Dark/Opaque Fills */}
         <div
           className="pointer-events-none absolute inset-0 -z-10 rounded-[26px]"
           style={{
             background:
-              'linear-gradient(-75deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)), rgba(11, 13, 22, 0.55)',
+              'linear-gradient(-75deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04))',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             filter: 'url(#container-glass)',

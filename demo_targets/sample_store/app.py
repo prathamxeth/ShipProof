@@ -18,11 +18,11 @@ app = FastAPI(title="ShipProof Sample Store", description="Target application fo
 PRODUCTS = {
     1: {
         "id": 1,
-        "name": "Wireless Noise-Cancelling Headphones",
+        "name": "Voyager Shoes",
         "price": 99.00,
-        "icon": "🎧",
-        "description": "High-fidelity audio with active noise cancellation and 30-hour battery life.",
-        "details": "Engineered for immersive sound. Features custom dynamic drivers, dual beamforming microphones, and plush memory foam earcups."
+        "icon": "👟",
+        "description": "Ultra-lightweight breathable athletic performance shoes engineered for daily endurance.",
+        "details": "Constructed with adaptive woven mesh, dual-density responsive cushioning, and high-traction rubber outsole. Engineered for optimal comfort."
     },
     2: {
         "id": 2,

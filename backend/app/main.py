@@ -101,11 +101,11 @@ async def recover_interrupted_states():
         )
         interrupted_runs = runs_res.scalars().all()
         for r in interrupted_runs:
-            r.status = "incomplete"
-            r.failure_reason = "Run interrupted by backend server restart"
+            r.status = "failed"
+            r.failure_reason = "Run interrupted or halted by backend restart"
             r.completed_at = datetime.now(timezone.utc)
             r.updated_at = datetime.now(timezone.utc)
-            logger.warning(f"Recovered interrupted run {r.id}: set status='incomplete'")
+            logger.warning(f"Recovered interrupted run {r.id}: set status='failed'")
 
         repairs_res = await session.execute(
             select(RepairRecordEntity).where(RepairRecordEntity.status.in_(["APPLYING", "VALIDATING", "RETESTING"]))
