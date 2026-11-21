@@ -6,13 +6,6 @@ import {
   AlertTriangle,
   Clock,
   RotateCcw,
-  Globe,
-  ShoppingCart,
-  Layers,
-  CreditCard,
-  ShieldCheck,
-  PackageCheck,
-  ChevronRight,
 } from "lucide-react";
 import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
 
@@ -34,7 +27,7 @@ export interface ShopperJourneyTimelineProps {
   completedCount: number;
   totalCount: number;
   elapsedSec: number;
-  currentUrl: string;
+  currentUrl?: string;
   runStatus: "running" | "passed" | "failed" | "error" | "queued" | "incomplete" | "cancelled" | "verified" | "timed_out";
   failureReason?: string | null;
   onRetry?: () => void;
@@ -47,37 +40,13 @@ export function ShopperJourneyTimeline({
   completedCount,
   totalCount = 7,
   elapsedSec = 0,
-  currentUrl,
   runStatus,
   failureReason,
   onRetry,
   isStale = false,
 }: ShopperJourneyTimelineProps) {
-  const isRunning = runStatus === "running" || runStatus === "queued";
   const isPassed = runStatus === "passed" || runStatus === "verified";
   const isFailed = runStatus === "failed" || runStatus === "error" || runStatus === "incomplete" || runStatus === "timed_out" || isStale;
-
-  // Step Icon mapping
-  const getStepIcon = (id: number) => {
-    switch (id) {
-      case 1:
-        return <Globe className="w-3.5 h-3.5" />;
-      case 2:
-        return <Layers className="w-3.5 h-3.5" />;
-      case 3:
-        return <Layers className="w-3.5 h-3.5" />;
-      case 4:
-        return <ShoppingCart className="w-3.5 h-3.5" />;
-      case 5:
-        return <CheckCircle2 className="w-3.5 h-3.5" />;
-      case 6:
-        return <CreditCard className="w-3.5 h-3.5" />;
-      case 7:
-        return <PackageCheck className="w-3.5 h-3.5" />;
-      default:
-        return <ShieldCheck className="w-3.5 h-3.5" />;
-    }
-  };
 
   return (
     <div className="w-full flex flex-col gap-3.5 p-4 rounded-2xl liquid-glass-panel">
@@ -116,7 +85,7 @@ export function ShopperJourneyTimeline({
         </div>
 
         {/* Real Progress Bar — Liquid Glass Track */}
-        <div className="w-full h-2 rounded-full bg-white/[0.04] border border-white/12 overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+        <div className="w-full h-2 rounded-full bg-white/4 border border-white/12 overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
           <div
             className={`h-full transition-all duration-300 ease-out rounded-full ${
               isPassed
@@ -154,13 +123,13 @@ export function ShopperJourneyTimeline({
                 {/* State Indicator Glyph */}
                 <div className="flex-none">
                   {isDone ? (
-                    <div className="w-4 h-4 rounded-full bg-white/[0.08] border border-white/20 flex items-center justify-center text-emerald-400 shadow-sm">
+                    <div className="w-4 h-4 rounded-full bg-white/8 border border-white/20 flex items-center justify-center text-emerald-400 shadow-sm">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
                   ) : isCurrentRunning ? (
                     <div className="w-4 h-4 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
                   ) : isStepFailed ? (
-                    <div className="w-4 h-4 rounded-full bg-white/[0.08] border border-white/20 flex items-center justify-center text-rose-400 shadow-sm">
+                    <div className="w-4 h-4 rounded-full bg-white/8 border border-white/20 flex items-center justify-center text-rose-400 shadow-sm">
                       <AlertTriangle className="w-3.5 h-3.5" />
                     </div>
                   ) : (

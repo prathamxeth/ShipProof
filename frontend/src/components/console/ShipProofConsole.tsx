@@ -26,9 +26,7 @@ import {
   CheckCircle2,
   Clock,
   Cpu,
-  CreditCard,
   ExternalLink,
-  Globe,
   Layers,
   Play,
   RefreshCw,
@@ -169,14 +167,10 @@ export function ShipProofConsole() {
   // Determine if active session has timed out / stalled
   const isStaleSession = useMemo(() => {
     if (selectedRun?.status === "running" || selectedRun?.status === "queued") {
-      if (activeTimerSec >= 90) return true;
-      if (selectedRun.created_at) {
-        const diffSec = (Date.now() - new Date(selectedRun.created_at).getTime()) / 1000;
-        return diffSec >= 90;
-      }
+      return activeTimerSec >= 90;
     }
     return false;
-  }, [selectedRun, activeTimerSec]);
+  }, [selectedRun?.status, activeTimerSec]);
 
   // Compute actual elapsed time: live active time if running, or exact completed duration from DB timestamps
   const runElapsedSec = useMemo(() => {
@@ -656,7 +650,7 @@ export function ShipProofConsole() {
       {/* Floating Notification */}
       {notification && (
         <div
-          className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border border-white/20 bg-white/[0.08] backdrop-blur-xl text-zinc-100 animate-in fade-in slide-in-from-top-2"
+          className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border border-white/20 bg-white/8 backdrop-blur-xl text-zinc-100 animate-in fade-in slide-in-from-top-2"
           style={{ transition: "opacity 0.15s ease, transform 0.15s ease" }}
         >
           {notification.type === "success" ? (
@@ -671,16 +665,16 @@ export function ShipProofConsole() {
       )}
 
       {/* Top Header — Refractive Liquid Glass Header */}
-      <header className="w-full border-b border-white/12 bg-white/[0.04] backdrop-blur-2xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+      <header className="w-full border-b border-white/12 bg-white/4 backdrop-blur-2xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/20 flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-lg bg-white/8 border border-white/20 flex items-center justify-center shadow-lg">
             <Cpu className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm tracking-tight text-white">ShipProof</span>
-              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/20 text-zinc-200 font-medium">
+              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-white/8 border border-white/20 text-zinc-200 font-medium">
                 AI Store Guardian
               </span>
             </div>
@@ -691,7 +685,7 @@ export function ShipProofConsole() {
         {/* Live System State Marks */}
         <div className="flex items-center flex-wrap gap-3 text-xs">
           {/* AI Shopper Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
             <StatusMark
               status={health?.kane_cli_installed !== false ? "done" : "failed"}
               size={13}
@@ -703,7 +697,7 @@ export function ShipProofConsole() {
           </div>
 
           {/* 24/7 Guardian Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
             <StatusMark
               status={guardStatus?.enabled ? "running" : "done"}
               size={13}
@@ -720,7 +714,7 @@ export function ShipProofConsole() {
             href={process.env.NEXT_PUBLIC_STORE_URL || (typeof window !== "undefined" && window.location.hostname.includes("trycloudflare.com") ? "https://recipients-enters-spots-midnight.trycloudflare.com" : "http://127.0.0.1:3005")}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/20 text-zinc-200 hover:bg-white/[0.14] text-[11px] font-medium backdrop-blur-md"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/8 border border-white/20 text-zinc-200 hover:bg-white/[0.14] text-[11px] font-medium backdrop-blur-md"
             style={{ transition: "background-color 0.15s ease, border-color 0.15s ease" }}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -731,7 +725,7 @@ export function ShipProofConsole() {
 
         {/* Sentinel Interval & Refresh Controls */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full bg-white/[0.05] p-1 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center rounded-full bg-white/5 p-1 border border-white/10 backdrop-blur-md">
             <span className="text-[10px] uppercase font-sans px-2 text-zinc-400 font-medium">Check Every</span>
             {[
               { label: "1 min", sec: 60 },
@@ -744,7 +738,7 @@ export function ShipProofConsole() {
                 onClick={() => handleSetInterval(btn.sec)}
                 className={`text-[11px] px-2.5 py-1 rounded-full transition-colors duration-150 cursor-pointer ${
                   guardStatus?.interval_seconds === btn.sec
-                    ? "bg-white/[0.18] text-white border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] font-semibold"
+                    ? "bg-white/18 text-white border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] font-semibold"
                     : "text-zinc-300 hover:text-white"
                 }`}
               >
@@ -767,9 +761,9 @@ export function ShipProofConsole() {
       {/* Main Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
         {/* Judge Interactive Walkthrough Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/4 border border-white/10 backdrop-blur-xl shadow-lg">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-amber-300 font-bold text-xs shadow-md">
+            <div className="w-7 h-7 rounded-xl bg-white/8 border border-white/20 flex items-center justify-center text-amber-300 font-bold text-xs shadow-md">
               <Zap className="w-4 h-4 fill-current text-amber-300" />
             </div>
             <div>
@@ -820,7 +814,7 @@ export function ShipProofConsole() {
                 <ShoppingCart className="w-3.5 h-3.5 text-sky-400" />
                 <span className="font-medium text-zinc-100">Orders Checked</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Live Shopper</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Live Shopper</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -844,7 +838,7 @@ export function ShipProofConsole() {
                 <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Protected Revenue</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Active Store</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Active Store</span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
               <span className="text-2xl font-bold text-white">$</span>
@@ -874,7 +868,7 @@ export function ShipProofConsole() {
                 <ShieldAlert className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Sales at Risk</span>
               </span>
-              <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 font-medium">
+              <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 font-medium">
                 {defectActive ? "Checkout Broken" : "Healthy"}
               </span>
             </div>
@@ -903,7 +897,7 @@ export function ShipProofConsole() {
                 <Wrench className="w-3.5 h-3.5 text-zinc-300" />
                 <span className="font-medium text-zinc-100">Issues Auto-Fixed</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/20">Self-Healing</span>
+              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Self-Healing</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -1004,7 +998,7 @@ export function ShipProofConsole() {
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
@@ -1014,7 +1008,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 flex items-center gap-1.5 font-semibold">
+                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 flex items-center gap-1.5 font-semibold">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                     24/7 ACTIVE
                   </span>
@@ -1114,7 +1108,7 @@ export function ShipProofConsole() {
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
@@ -1124,7 +1118,7 @@ export function ShipProofConsole() {
                 </div>
 
                 <span
-                  className="text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold bg-white/[0.08] text-zinc-200 border-white/20"
+                  className="text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold bg-white/8 text-zinc-200 border-white/20"
                 >
                   {activeRepair?.status === "VERIFIED"
                     ? "Fixed & Verified"
@@ -1187,7 +1181,7 @@ export function ShipProofConsole() {
                       <span className="text-[11px] text-zinc-300">Store checkout restored. 0 revenue lost. Proof recorded.</span>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/[0.08] text-zinc-200 border border-white/20 font-semibold">
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 font-semibold">
                     100% Healed
                   </span>
                 </div>
@@ -1201,14 +1195,14 @@ export function ShipProofConsole() {
                     <span>What Happened &amp; How AI Fixed It</span>
                   </span>
                   <span
-                    className="text-[10px] px-2 py-0.5 rounded-full border border-white/20 bg-white/[0.08] font-semibold text-zinc-100"
+                    className="text-[10px] px-2 py-0.5 rounded-full border border-white/20 bg-white/8 font-semibold text-zinc-100"
                   >
                     {activeRepair?.status === "VERIFIED" ? "Successfully Applied" : "Ready to Apply"}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/12 flex flex-col gap-1 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-white/4 border border-white/12 flex flex-col gap-1 backdrop-blur-md">
                     <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
                       <span>Problem Detected</span>
@@ -1217,7 +1211,7 @@ export function ShipProofConsole() {
                       The checkout button was disabled, preventing customers from finishing purchases.
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/12 flex flex-col gap-1 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-white/4 border border-white/12 flex flex-col gap-1 backdrop-blur-md">
                     <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>AI Solution</span>
@@ -1254,9 +1248,9 @@ export function ShipProofConsole() {
                             key={idx}
                             className={`px-1.5 py-0.5 rounded whitespace-pre ${
                               isAdd
-                                ? "text-emerald-300 bg-white/[0.04]"
+                                ? "text-emerald-300 bg-white/4"
                                 : isDel
-                                ? "text-rose-300 bg-white/[0.04]"
+                                ? "text-rose-300 bg-white/4"
                                 : isHeader
                                 ? "text-zinc-400 font-semibold"
                                 : "text-zinc-300"
@@ -1310,7 +1304,7 @@ export function ShipProofConsole() {
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-xl bg-white/[0.08] text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
                     <ShoppingCart className="w-4 h-4" />
                   </div>
                   <div>
@@ -1406,7 +1400,7 @@ export function ShipProofConsole() {
                           <span className="text-xs font-bold text-white tracking-tight">
                             {isStaleSession ? "Execution Timed Out (90s)" : "Issue Found: Checkout Button Blocked"}
                           </span>
-                          <span className="text-[11px] text-zinc-200 leading-normal break-words mt-0.5">
+                          <span className="text-[11px] text-zinc-200 leading-normal wrap-break-word mt-0.5">
                             {isStaleSession
                               ? "Worker session reached 90s timeout. Test halted to prevent hanging."
                               : (selectedRun?.failure_reason ? selectedRun.failure_reason.split("\n")[0] : "Checkout button was disabled or unresponsive on cart page.")}
@@ -1455,7 +1449,7 @@ export function ShipProofConsole() {
       </main>
 
       {/* Footer — Refractive Liquid Glass Footer */}
-      <footer className="w-full border-t border-white/12 bg-white/[0.04] backdrop-blur-2xl py-3.5 px-6 mt-8 text-center text-xs text-zinc-400 flex flex-wrap items-center justify-between gap-2">
+      <footer className="w-full border-t border-white/12 bg-white/4 backdrop-blur-2xl py-3.5 px-6 mt-8 text-center text-xs text-zinc-400 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-zinc-200 font-medium">ShipProof</span>
           <span>•</span>

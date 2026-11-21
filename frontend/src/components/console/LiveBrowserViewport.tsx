@@ -9,8 +9,6 @@ import {
   Globe,
   CheckCircle2,
   AlertTriangle,
-  Layers,
-  Sparkles,
 } from "lucide-react";
 import LiquidGlassButton from "@/components/ui/LiquidGlassButton";
 
