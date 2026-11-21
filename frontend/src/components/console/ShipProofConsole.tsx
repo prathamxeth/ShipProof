@@ -717,14 +717,14 @@ export function ShipProofConsole() {
 
           {/* Store Target link */}
           <a
-            href="http://127.0.0.1:3005"
+            href={process.env.NEXT_PUBLIC_STORE_URL || (typeof window !== "undefined" && window.location.hostname.includes("trycloudflare.com") ? "https://recipients-enters-spots-midnight.trycloudflare.com" : "http://127.0.0.1:3005")}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/20 text-zinc-200 hover:bg-white/[0.14] text-[11px] font-medium backdrop-blur-md"
             style={{ transition: "background-color 0.15s ease, border-color 0.15s ease" }}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span>View Demo Store (:3005)</span>
+            <span>View Demo Store</span>
             <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
           </a>
         </div>
