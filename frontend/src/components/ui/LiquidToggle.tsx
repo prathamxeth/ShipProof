@@ -35,7 +35,7 @@ export function LiquidToggle({
         aria-checked={checked}
         disabled={disabled}
         onClick={handleClick}
-        className={`liquid-toggle relative cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 focus-visible:ring-2 focus-visible:ring-sky-400/40 ${
+        className={`liquid-toggle relative cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2d4a3e] focus-visible:ring-2 focus-visible:ring-[#2d4a3e]/30 ${
           disabled ? 'opacity-40 cursor-not-allowed' : ''
         }`}
         style={
@@ -50,17 +50,17 @@ export function LiquidToggle({
           } as React.CSSProperties
         }
       >
-        {/* Background track & indicator — Clean Empty Liquid Glass */}
+        {/* Background track & indicator */}
         <div
           className="indicator absolute inset-0 rounded-full"
           style={{
             background: checked
-              ? 'linear-gradient(-75deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.15))'
-              : 'rgba(255, 255, 255, 0.08)',
+              ? '#d9383a'
+              : 'rgba(45, 74, 62, 0.16)',
             boxShadow: checked
-              ? 'inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 255, 255, 0.25)'
-              : 'inset 0 1px 2px rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+              ? 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 0 10px rgba(217, 56, 58, 0.3)'
+              : 'inset 0 1px 2px rgba(35, 55, 45, 0.1)',
+            border: '1px solid rgba(45, 74, 62, 0.2)',
             transition: 'background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           }}
         />
@@ -77,9 +77,9 @@ export function LiquidToggle({
               width: `${height - border * 2}px`,
               height: `${height - border * 2}px`,
               margin: 'auto 0',
-              background: checked ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+              background: '#ffffff',
               boxShadow:
-                '0 2px 6px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.9)',
+                '0 2px 6px rgba(35,55,45,0.25), inset 0 1px 1px rgba(255,255,255,0.9)',
               transition: 'left 0.2s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease',
             }}
           />
@@ -94,19 +94,14 @@ export function LiquidToggle({
             height: `${height - border * 2}px`,
             margin: 'auto 0',
             boxShadow:
-              'inset 1px 1px 2px rgba(255,255,255,0.8), inset -1px -1px 2px rgba(0,0,0,0.2)',
+              'inset 1px 1px 2px rgba(255,255,255,0.8), inset -1px -1px 2px rgba(35,55,45,0.15)',
             transition: 'left 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
           }}
         />
       </button>
 
       {label && (
-        <span
-          onClick={handleClick}
-          className="text-xs font-mono text-zinc-300 cursor-pointer"
-        >
-          {label}
-        </span>
+        <span className="text-xs text-[#1c2a22] font-medium">{label}</span>
       )}
     </div>
   );

@@ -4,33 +4,33 @@
 <div class="card" style="max-width: 640px; margin: 2rem auto; text-align: center; padding: 3.5rem 2.5rem;" id="confirmation-card">
   <div class="card-content">
     <!-- Success Icon Disc -->
-    <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #34d399; margin: 0 auto 1.5rem auto; box-shadow: 0 0 32px rgba(16, 185, 129, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.3);">
+    <div style="width: 76px; height: 76px; border-radius: 50%; background: rgba(27, 122, 75, 0.12); border: 1px solid rgba(27, 122, 75, 0.3); display: flex; align-items: center; justify-content: center; font-size: 2.4rem; color: var(--success); margin: 0 auto 1.5rem auto; box-shadow: 0 4px 20px rgba(27, 122, 75, 0.18);">
       ✓
     </div>
 
-    <span class="badge badge-live" style="margin-bottom: 0.75rem;">Verified Checkout Complete</span>
+    <span class="badge badge-live" style="margin-bottom: 0.85rem;">Verified Checkout Complete</span>
 
-    <h1 id="confirmation-title" style="font-size: 2.25rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; margin-bottom: 0.75rem;">
+    <h1 id="confirmation-title" style="font-family: var(--font-display); font-size: 2.6rem; font-weight: 400; letter-spacing: -0.015em; color: var(--primary); margin-bottom: 0.75rem; line-height: 1.1;">
       Order Placed Successfully!
     </h1>
-    <p style="color: #94a3b8; font-size: 1rem; line-height: 1.6; max-width: 480px; margin: 0 auto 2rem auto;">
-      Thank you for your purchase. The transaction was verified without defects and confirmed by ShipProof.
+    <p style="color: var(--foreground-muted); font-size: 1rem; line-height: 1.6; max-width: 480px; margin: 0 auto 2rem auto;">
+      Thank you for your purchase. The customer transaction was completed without defects and confirmed by ShipProof.
     </p>
 
     <!-- Order Reference Pill Card -->
-    <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 18px; padding: 1.5rem; margin-bottom: 2.25rem;">
-      <div style="font-size: 0.78rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.04em; margin-bottom: 0.35rem;">
+    <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid var(--border-subtle); border-radius: 18px; padding: 1.5rem; margin-bottom: 2.25rem; box-shadow: 0 4px 16px rgba(35, 55, 45, 0.04);">
+      <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--foreground-muted); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
         Order Reference Identifier
       </div>
-      <div style="font-size: 1.85rem; font-weight: 800; font-family: ui-monospace, monospace; color: #38bdf8; letter-spacing: 0.05em;" id="order-number">
+      <div style="font-size: 1.85rem; font-weight: 700; font-family: ui-monospace, monospace; color: var(--primary); letter-spacing: 0.05em;" id="order-number">
         {{ order_id }}
       </div>
-      <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+      <div style="font-size: 0.82rem; color: var(--foreground-muted); margin-top: 0.5rem;">
         Estimated Delivery: 2-3 Business Days &bull; Confirmation sent to customer email
       </div>
     </div>
 
-    <a href="/" class="btn btn-primary" id="continue-shopping-btn" style="padding: 0.85rem 2rem; font-size: 0.95rem;">
+    <a href="/" class="btn btn-primary" id="continue-shopping-btn" style="padding: 0.85rem 2.25rem; font-size: 0.95rem;">
       <span>← Continue Shopping</span>
     </a>
   </div>

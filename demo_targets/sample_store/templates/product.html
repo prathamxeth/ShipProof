@@ -1,60 +1,62 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card" style="max-width: 780px; margin: 1rem auto; padding: 2.5rem;" id="product-detail">
+<div class="card" style="max-width: 840px; margin: 1.5rem auto; padding: 3rem;" id="product-detail">
   <div class="card-content">
     <!-- Back to Catalog Link -->
-    <a href="/" style="display: inline-flex; align-items: center; gap: 0.35rem; color: #94a3b8; font-size: 0.85rem; text-decoration: none; margin-bottom: 1.5rem; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#94a3b8'">
+    <a href="/" style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--foreground-muted); font-size: 0.88rem; text-decoration: none; margin-bottom: 2rem; font-weight: 500; transition: color 0.15s;" onmouseover="this.style.color='#2d4a3e'" onmouseout="this.style.color='#4e6357'">
       <span>&larr; Back to Catalog</span>
     </a>
 
-    <div style="display: flex; flex-direction: column; md:flex-row; gap: 2rem;">
-      <!-- Product Icon Graphic Card -->
-      <div style="width: 100px; height: 100px; border-radius: 24px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; font-size: 4rem; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 16px 32px rgba(0, 0, 0, 0.4);">
-        {{ product.icon }}
-      </div>
-
-      <!-- Detail Info -->
-      <div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-          <span class="badge badge-live">In Stock &bull; Ships Immediately</span>
-          <span class="badge">Model #ACME-0{{ product.id }}</span>
+    <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+      <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+        <!-- Product Icon Graphic Card -->
+        <div style="width: 120px; height: 120px; border-radius: 24px; background: rgba(45, 74, 62, 0.05); border: 1px solid rgba(45, 74, 62, 0.12); display: flex; align-items: center; justify-content: center; font-size: 4.5rem; box-shadow: 0 8px 24px -4px rgba(45, 74, 62, 0.08);">
+          {{ product.icon }}
         </div>
 
-        <h1 id="product-title" style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; margin-bottom: 0.75rem;">
-          {{ product.name }}
-        </h1>
-
-        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.5rem;">
-          <span style="font-size: 2rem; font-weight: 800; color: #34d399; letter-spacing: -0.02em;">
-            ${{ "%.2f"|format(product.price) }}
-          </span>
-          <span style="font-size: 0.85rem; color: #94a3b8;">Free Standard Shipping &bull; 30-Day Returns</span>
-        </div>
-
-        <p style="color: #cbd5e1; font-size: 1rem; line-height: 1.7; margin-bottom: 2rem;">
-          {{ product.details }}
-        </p>
-
-        <!-- Product Size Selector Options (S, M, L) -->
-        <div style="margin-bottom: 2rem;">
-          <label style="display: block; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.65rem;">
-            Select Size
-          </label>
-          <div style="display: flex; gap: 0.75rem;">
-            <button type="button" id="size-s-button" class="btn" style="min-width: 48px; padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="selectSize(this)">S</button>
-            <button type="button" id="size-m-button" class="btn btn-primary" style="min-width: 48px; padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="selectSize(this)">M</button>
-            <button type="button" id="size-l-button" class="btn" style="min-width: 48px; padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="selectSize(this)">L</button>
+        <!-- Detail Info -->
+        <div style="flex: 1; min-width: 280px;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem;">
+            <span class="badge badge-live">In Stock &bull; Ships Immediately</span>
+            <span class="badge">Model #ACME-0{{ product.id }}</span>
           </div>
-        </div>
 
-        <!-- Add to Cart Form -->
-        <form action="/cart/add" method="POST">
-          <input type="hidden" name="product_id" value="{{ product.id }}">
-          <button type="submit" class="btn btn-primary" id="detail-add-to-cart-btn" style="width: 100%; padding: 0.85rem 2rem; font-size: 1.05rem;">
-            <span>+ Add to Shopping Bag</span>
-          </button>
-        </form>
+          <h1 id="product-title" style="font-family: var(--font-display); font-size: 2.75rem; font-weight: 400; letter-spacing: -0.015em; color: var(--primary); margin-bottom: 0.5rem; line-height: 1.1;">
+            {{ product.name }}
+          </h1>
+
+          <div style="display: flex; align-items: baseline; gap: 0.85rem; margin-bottom: 1.5rem;">
+            <span style="font-size: 2.25rem; font-weight: 700; color: var(--primary); letter-spacing: -0.02em;">
+              ${{ "%.2f"|format(product.price) }}
+            </span>
+            <span style="font-size: 0.88rem; color: var(--foreground-muted);">Free Shipping &bull; 30-Day Guarantee</span>
+          </div>
+
+          <p style="color: var(--foreground-muted); font-size: 1.05rem; line-height: 1.65; margin-bottom: 2rem;">
+            {{ product.details }}
+          </p>
+
+          <!-- Product Size Selector Options (S, M, L) -->
+          <div style="margin-bottom: 2rem;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; color: var(--foreground-muted); letter-spacing: 0.04em; margin-bottom: 0.75rem;">
+              Select Size
+            </label>
+            <div style="display: flex; gap: 0.75rem;">
+              <button type="button" id="size-s-button" class="btn btn-secondary" style="min-width: 52px; padding: 0.6rem 1.15rem; font-size: 0.9rem;" onclick="selectSize(this)">S</button>
+              <button type="button" id="size-m-button" class="btn btn-primary" style="min-width: 52px; padding: 0.6rem 1.15rem; font-size: 0.9rem;" onclick="selectSize(this)">M</button>
+              <button type="button" id="size-l-button" class="btn btn-secondary" style="min-width: 52px; padding: 0.6rem 1.15rem; font-size: 0.9rem;" onclick="selectSize(this)">L</button>
+            </div>
+          </div>
+
+          <!-- Add to Cart Form -->
+          <form action="/cart/add" method="POST">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <button type="submit" class="btn btn-primary" id="detail-add-to-cart-btn" style="width: 100%; padding: 0.95rem 2rem; font-size: 1.05rem;">
+              <span>+ Add to Shopping Bag</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -64,7 +66,9 @@
   function selectSize(btn) {
     document.querySelectorAll('[id^="size-"]').forEach(b => {
       b.classList.remove('btn-primary');
+      b.classList.add('btn-secondary');
     });
+    btn.classList.remove('btn-secondary');
     btn.classList.add('btn-primary');
   }
 </script>

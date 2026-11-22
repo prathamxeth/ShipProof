@@ -1,15 +1,15 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card" style="max-width: 880px; margin: 1rem auto; padding: 2.25rem;" id="cart-container">
+<div class="card" style="max-width: 920px; margin: 1.5rem auto; padding: 2.5rem;" id="cart-container">
   <div class="card-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.5rem;">
       <div>
-        <h1 id="cart-header" style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff;">
+        <h1 id="cart-header" style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 400; letter-spacing: -0.015em; color: var(--primary); line-height: 1.1;">
           Your Shopping Bag
         </h1>
-        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">
-          Verified and protected by ShipProof 24/7 AI Store Guardian
+        <p style="font-size: 0.88rem; color: var(--foreground-muted); margin-top: 0.35rem;">
+          Verified and protected 24/7 by ShipProof Autonomous AI Store Guardian
         </p>
       </div>
       <a href="/" class="nav-btn">
@@ -21,7 +21,7 @@
       <div style="overflow-x: auto; margin-bottom: 2rem;">
         <table style="width: 100%; border-collapse: collapse;" id="cart-table">
           <thead>
-            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: left; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">
+            <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left; color: var(--foreground-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
               <th style="padding: 0.85rem 0.5rem;">Product</th>
               <th style="padding: 0.85rem 0.5rem;">Unit Price</th>
               <th style="padding: 0.85rem 0.5rem; text-align: center;">Qty</th>
@@ -30,36 +30,36 @@
           </thead>
           <tbody>
             {% for item in items %}
-              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);" id="cart-row-{{ item.product.id }}">
+              <tr style="border-bottom: 1px solid rgba(45, 74, 62, 0.08);" id="cart-row-{{ item.product.id }}">
                 <td style="padding: 1.25rem 0.5rem;">
-                  <div style="display: flex; align-items: center; gap: 0.85rem;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                  <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 2px 6px rgba(35, 55, 45, 0.05);">
                       {{ item.product.icon }}
                     </div>
                     <div>
-                      <strong id="cart-item-name-{{ item.product.id }}" style="font-size: 1rem; color: #ffffff; display: block;">
+                      <strong id="cart-item-name-{{ item.product.id }}" style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 400; color: var(--primary); display: block; line-height: 1.2;">
                         {{ item.product.name }}
                       </strong>
-                      <span style="font-size: 0.75rem; color: #94a3b8;">Size: Medium &bull; In Stock</span>
+                      <span style="font-size: 0.78rem; color: var(--foreground-muted);">Size: Medium &bull; In Stock</span>
                     </div>
                   </div>
                 </td>
 
-                <td style="padding: 1.25rem 0.5rem; font-size: 0.95rem; color: #cbd5e1;">
+                <td style="padding: 1.25rem 0.5rem; font-size: 0.95rem; color: var(--foreground); font-weight: 500;">
                   ${{ "%.2f"|format(item.product.price) }}
                 </td>
 
                 <td style="padding: 1.25rem 0.5rem; text-align: center;">
                   <form action="/cart/update" method="POST" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                     <input type="hidden" name="product_id" value="{{ item.product.id }}">
-                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" style="width: 64px; text-align: center; padding: 0.4rem 0.5rem; font-size: 0.85rem;" id="qty-input-{{ item.product.id }}">
-                    <button type="submit" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;" id="update-btn-{{ item.product.id }}">
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" style="width: 64px; text-align: center; padding: 0.4rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: var(--foreground);" id="qty-input-{{ item.product.id }}">
+                    <button type="submit" class="nav-btn" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;" id="update-btn-{{ item.product.id }}">
                       Update
                     </button>
                   </form>
                 </td>
 
-                <td style="padding: 1.25rem 0.5rem; text-align: right; font-weight: 700; font-size: 1.15rem; color: #34d399;" id="item-total-{{ item.product.id }}">
+                <td style="padding: 1.25rem 0.5rem; text-align: right; font-weight: 600; font-size: 1.15rem; color: var(--primary);" id="item-total-{{ item.product.id }}">
                   ${{ "%.2f"|format(item.total) }}
                 </td>
               </tr>
@@ -68,13 +68,13 @@
         </table>
       </div>
 
-      <!-- Checkout Summary & Action -->
-      <div class="cart-summary-banner">
+      <!-- Checkout Summary & Action Banner -->
+      <div class="cart-summary-banner" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1.75rem; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-subtle); border-radius: 16px; box-shadow: 0 4px 16px rgba(35, 55, 45, 0.05);">
         <div>
-          <span style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.02em; display: block;">
+          <span style="color: var(--foreground-muted); font-size: 0.82rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; display: block;">
             Order Subtotal
           </span>
-          <span id="cart-subtotal" style="font-size: 2rem; font-weight: 800; color: #34d399; letter-spacing: -0.02em;">
+          <span id="cart-subtotal" style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 400; color: var(--primary); letter-spacing: -0.01em;">
             ${{ "%.2f"|format(subtotal) }}
           </span>
         </div>
@@ -82,21 +82,21 @@
         <div>
         {% if defect_enabled %}
           <!-- INTENTIONAL DEFECT: Button has broken ID and disabled state -->
-          <button id="checkout-btn-broken" class="btn btn-disabled" disabled style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</button>
-          <div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.4rem; text-align: right;" id="defect-msg">Error: Checkout button disabled by defect</div>
+          <button id="checkout-btn-broken" class="btn btn-disabled" disabled style="padding: 0.85rem 2.2rem; font-size: 1.05rem;">Proceed to Checkout</button>
+          <div style="color: var(--danger); font-size: 0.8rem; margin-top: 0.4rem; text-align: right; font-weight: 600;" id="defect-msg">Error: Checkout button disabled by defect</div>
         {% else %}
           <!-- NORMAL / REPAIRED STATE -->
-          <a id="checkout-btn" href="/checkout" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Proceed to Checkout</a>
+          <a id="checkout-btn" href="/checkout" class="btn btn-primary" style="padding: 0.85rem 2.2rem; font-size: 1.05rem;">Proceed to Checkout</a>
         {% endif %}
         </div>
       </div>
 
     {% else %}
       <div style="text-align: center; padding: 4rem 1rem;" id="empty-cart-msg">
-        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.6;">🛍️</div>
-        <h2 style="font-size: 1.4rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Your bag is currently empty</h2>
-        <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 2rem;">Explore our high-performance gear and add items to begin checkout.</p>
-        <a href="/" class="btn btn-primary" style="padding: 0.75rem 2rem;">Browse Catalog</a>
+        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;">🛍️</div>
+        <h2 style="font-family: var(--font-display); font-size: 1.85rem; font-weight: 400; color: var(--primary); margin-bottom: 0.5rem;">Your bag is currently empty</h2>
+        <p style="color: var(--foreground-muted); font-size: 0.95rem; margin-bottom: 2rem;">Explore our high-performance gear and add items to begin checkout.</p>
+        <a href="/" class="btn btn-primary" style="padding: 0.75rem 2rem;">Browse Collection</a>
       </div>
     {% endif %}
   </div>

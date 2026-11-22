@@ -139,13 +139,41 @@ export function ShipProofConsole() {
     return () => clearInterval(timer);
   }, []);
 
+  // Unified single source of truth for the currently selected run
+  const currentRun = useMemo(() => {
+    const targetId = selectedRunId || (runs.length > 0 ? runs[0].id : null);
+    if (!targetId) return null;
+
+    if (selectedRun && selectedRun.id === targetId) {
+      return selectedRun;
+    }
+    const matchingSummary = runs.find((r) => r.id === targetId);
+    if (matchingSummary) {
+      return {
+        ...matchingSummary,
+        steps: [],
+        repairs: [],
+        events_count: 0,
+      } as VerificationRun;
+    }
+    return selectedRun || null;
+  }, [selectedRunId, selectedRun, runs]);
+
+  const isCurrentRunPassed = useMemo(() => {
+    return currentRun?.status === "passed" || currentRun?.status === "verified";
+  }, [currentRun?.status]);
+
+  const isCurrentRunRunning = useMemo(() => {
+    return currentRun?.status === "running" || currentRun?.status === "queued";
+  }, [currentRun?.status]);
+
   // Live active timer for running shopper sessions with strict 90s ceiling
   useEffect(() => {
-    if (selectedRun?.status !== "running" && selectedRun?.status !== "queued") {
+    if (!isCurrentRunRunning) {
       setActiveTimerSec(0);
       return;
     }
-    const start = selectedRun.created_at ? new Date(selectedRun.created_at).getTime() : Date.now();
+    const start = currentRun?.created_at ? new Date(currentRun.created_at).getTime() : Date.now();
     const initialElapsed = Math.max(0, (Date.now() - start) / 1000);
     if (initialElapsed >= 90) {
       setActiveTimerSec(90.0);
@@ -162,56 +190,74 @@ export function ShipProofConsole() {
       }
     }, 250);
     return () => clearInterval(timer);
-  }, [selectedRun?.status, selectedRun?.created_at, selectedRunId]);
+  }, [isCurrentRunRunning, currentRun?.created_at, currentRun?.id]);
 
-  // Determine if active session has timed out / stalled
+  // Determine if active session has timed out / stalled (strictly impossible for passed runs)
   const isTimedOut = useMemo(() => {
-    if (selectedRun?.status === "timed_out") return true;
-    if ((selectedRun?.status === "running" || selectedRun?.status === "queued") && activeTimerSec >= 90) {
+    if (!currentRun) return false;
+    if (isCurrentRunPassed) return false;
+    if (currentRun.status === "timed_out") return true;
+    if (isCurrentRunRunning && activeTimerSec >= 90) {
       return true;
     }
     return false;
-  }, [selectedRun?.status, activeTimerSec]);
+  }, [currentRun, isCurrentRunPassed, isCurrentRunRunning, activeTimerSec]);
 
   const isStaleSession = isTimedOut;
 
   // Compute actual elapsed time: live active time if running, or exact completed duration from DB timestamps
   const runElapsedSec = useMemo(() => {
-    if (!selectedRun) return 0;
-    if (selectedRun.status === "running" || selectedRun.status === "queued") {
+    if (!currentRun) return 0;
+    if (isCurrentRunRunning) {
       return activeTimerSec;
     }
-    if (selectedRun.completed_at && selectedRun.created_at) {
-      const ms = new Date(selectedRun.completed_at).getTime() - new Date(selectedRun.created_at).getTime();
+    if (currentRun.completed_at && currentRun.created_at) {
+      const ms = new Date(currentRun.completed_at).getTime() - new Date(currentRun.created_at).getTime();
       return Math.max(0, Math.round(ms / 100) / 10);
     }
     return 0;
-  }, [selectedRun, activeTimerSec]);
+  }, [currentRun, isCurrentRunRunning, activeTimerSec]);
 
-  // Fetch evidence screenshot whenever selectedRunId updates
+  // Fetch evidence screenshot whenever selected run updates
   useEffect(() => {
-    if (!selectedRunId) {
+    const targetId = currentRun?.id || selectedRunId;
+    if (!targetId) {
       setEvidenceScreenshotUrl(null);
       return;
     }
-    api.getRunEvidence(selectedRunId)
+    let isCancelled = false;
+    api.getRunEvidence(targetId)
       .then((ev) => {
-        const screenshot = ev.artifacts?.find((a) => a.filename.endsWith(".jpg") || a.filename.endsWith(".png"));
+        if (isCancelled) return;
+        const imageArtifacts = (ev.artifacts || []).filter((a) => a.filename.endsWith(".jpg") || a.filename.endsWith(".png"));
+        const sortedImages = [...imageArtifacts].sort((a, b) => {
+          const stepA = (a.step_index !== undefined && a.step_index !== null) ? a.step_index : 0;
+          const stepB = (b.step_index !== undefined && b.step_index !== null) ? b.step_index : 0;
+          if (stepB !== stepA) return stepB - stepA;
+          return b.relative_path.localeCompare(a.relative_path);
+        });
+        const screenshot = sortedImages[0];
         if (screenshot?.relative_path) {
-          setEvidenceScreenshotUrl(`/api/runs/${selectedRunId}/evidence/files/${screenshot.relative_path}`);
+          setEvidenceScreenshotUrl(`/api/runs/${targetId}/evidence/files/${screenshot.relative_path}`);
         } else {
           setEvidenceScreenshotUrl(null);
         }
       })
-      .catch(() => setEvidenceScreenshotUrl(null));
-  }, [selectedRunId, selectedRun?.status]);
+      .catch(() => {
+        if (!isCancelled) setEvidenceScreenshotUrl(null);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentRun?.id, selectedRunId]);
 
   // Fetch detailed run when selectedRunId changes
   useEffect(() => {
-    if (!selectedRunId) return;
+    const targetId = selectedRunId || (runs.length > 0 ? runs[0].id : null);
+    if (!targetId) return;
     let isCancelled = false;
     api
-      .getRun(selectedRunId)
+      .getRun(targetId)
       .then((run) => {
         if (!isCancelled) setSelectedRun(run);
       })
@@ -221,81 +267,84 @@ export function ShipProofConsole() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedRunId]);
+  }, [selectedRunId, runs]);
 
-  // Fetch latest active repair details strictly associated with current state/run
+  // Decoupled state derivations:
+  const latestCompletedRun = useMemo(() => {
+    return runs.find((r) => r.status === "passed" || r.status === "verified" || r.status === "failed");
+  }, [runs]);
+
+  // Repair directly associated with the currently selected run
+  const currentRunRepair = useMemo(() => {
+    if (!currentRun?.id) return null;
+    return repairs.find((r) => r.run_id === currentRun.id || r.retest_run_id === currentRun.id) || null;
+  }, [repairs, currentRun?.id]);
+
+  // Any active or pending repair across the system
+  const unresolvedRepair = useMemo(() => {
+    return repairs.find(
+      (r) =>
+        r.status === "AWAITING_APPROVAL" ||
+        r.status === "APPLYING" ||
+        r.status === "RETESTING" ||
+        r.status === "VALIDATING" ||
+        r.status === "AGENT_RESPONSE_RECEIVED" ||
+        r.status === "JOB_PUBLISHED"
+    );
+  }, [repairs]);
+
+  const latestVerifiedRepair = useMemo(() => {
+    return repairs.find((r) => r.status === "VERIFIED");
+  }, [repairs]);
+
+  // Store Health:
+  // Derived strictly from whether defect is active OR the latest completed verification run passed/failed.
+  // An unresolved repair on an older run or an in-flight test does NOT mark the live store unhealthy if defect is off and latest completed check passed.
+  const isStoreHealthy = useMemo(() => {
+    if (defectActive) return false;
+    if (latestCompletedRun && latestCompletedRun.status === "failed") return false;
+    return true;
+  }, [defectActive, latestCompletedRun]);
+
+  // Target repair for Self-Healing Studio: prioritizes selected run's repair, otherwise system's active repair, otherwise latest verified
+  const activeRepairCandidate = useMemo(() => {
+    return currentRunRepair || unresolvedRepair || (isStoreHealthy ? latestVerifiedRepair : null);
+  }, [currentRunRepair, unresolvedRepair, latestVerifiedRepair, isStoreHealthy]);
+
+  // Fetch active repair details strictly reflecting its genuine approval state
   useEffect(() => {
-    if (!repairs || repairs.length === 0) {
-      setActiveRepair(null);
-      if (defectActive) setRepairStep(1);
-      return;
-    }
-
-    if (defectActive || selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut) {
-      // Prioritize repair directly tied to the currently selected run
-      const runRepair = repairs.find(
-        (r) => r.run_id === selectedRunId || r.retest_run_id === selectedRunId
-      );
-      const activeOrPending = runRepair || repairs.find(
-        (r) =>
-          r.status === "AWAITING_APPROVAL" ||
-          r.status === "APPLYING" ||
-          r.status === "RETESTING" ||
-          r.status === "VALIDATING" ||
-          r.status === "AGENT_RESPONSE_RECEIVED" ||
-          r.status === "JOB_PUBLISHED"
-      );
-
-      if (activeOrPending) {
-        let isCancelled = false;
-        api
-          .getRepair(activeOrPending.id)
-          .then((rep) => {
-            if (!isCancelled && rep) {
-              setActiveRepair(rep);
-              if (isTimedOut) {
-                setRepairStep(1);
-              } else if (rep.status === "VERIFIED") {
-                setRepairStep(6);
-              } else if (rep.status === "RETESTING" || rep.status === "APPLYING" || rep.status === "VALIDATING") {
-                setRepairStep(5);
-              } else if (rep.status === "AWAITING_APPROVAL") {
-                setRepairStep(4);
-              } else if (rep.status === "AGENT_RESPONSE_RECEIVED") {
-                setRepairStep(3);
-              } else {
-                setRepairStep(2);
-              }
+    if (activeRepairCandidate) {
+      let isCancelled = false;
+      api
+        .getRepair(activeRepairCandidate.id)
+        .then((rep) => {
+          if (!isCancelled && rep) {
+            setActiveRepair(rep);
+            if (rep.status === "VERIFIED") {
+              setRepairStep(6);
+            } else if (rep.status === "RETESTING" || rep.status === "APPLYING" || rep.status === "VALIDATING") {
+              setRepairStep(5);
+            } else if (rep.status === "AWAITING_APPROVAL") {
+              setRepairStep(4);
+            } else if (rep.status === "AGENT_RESPONSE_RECEIVED") {
+              setRepairStep(3);
+            } else {
+              setRepairStep(2);
             }
-          })
-          .catch(() => {});
-        return () => {
-          isCancelled = true;
-        };
-      } else {
-        // Defect active or run failed, but no patch staged yet -> Step 1: Issue Spotted
-        setActiveRepair(null);
-        setRepairStep(1);
-      }
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isCancelled = true;
+      };
+    } else if (defectActive) {
+      setActiveRepair(null);
+      setRepairStep(1);
     } else {
-      // Defect is not active (store healthy)
-      // Only show Step 6 if the current run or recent repair was actually verified
-      const verified = repairs.find((r) => r.status === "VERIFIED" && (r.retest_run_id === selectedRunId || r.run_id === selectedRunId));
-      if (verified) {
-        setActiveRepair(verified);
-        setRepairStep(6);
-      } else {
-        if (selectedRun?.status === "passed" || selectedRun?.status === "verified") {
-          const latestVerified = repairs.find((r) => r.status === "VERIFIED");
-          setActiveRepair(latestVerified || null);
-          setRepairStep(6);
-        } else {
-          setActiveRepair(null);
-          setRepairStep(1);
-        }
-      }
+      setActiveRepair(null);
+      setRepairStep(6);
     }
-  }, [repairs, defectActive, selectedRunId, selectedRun?.status, isTimedOut]);
+  }, [activeRepairCandidate, defectActive, isStoreHealthy]);
 
   // Handle Sentinel Interval Change
   const handleSetInterval = async (seconds: number) => {
@@ -333,17 +382,18 @@ export function ShipProofConsole() {
 
   // Handle Retry Run (creates brand new run ID and fresh timer)
   const handleRetryRun = async () => {
-    if (selectedRun && !selectedRun.title.includes("Revenue Guard") && !selectedRun.title.includes("Secret Shopper")) {
+    if (currentRun && !currentRun.title.includes("Revenue Guard") && !currentRun.title.includes("Secret Shopper")) {
       setIsCreating(true);
-      showNotification(`Retrying customer test: ${selectedRun.title}...`, "info");
+      showNotification(`Retrying customer test: ${currentRun.title}...`, "info");
       try {
         const newRun = await api.createRun({
-          title: `[Retry] ${selectedRun.title.replace(/^\[Retry\]\s*/, "")}`,
-          objective: selectedRun.objective,
-          target_url: selectedRun.target_url,
-          mode: selectedRun.mode || "interactive",
+          title: `[Retry] ${currentRun.title.replace(/^\[Retry\]\s*/, "")}`,
+          objective: currentRun.objective,
+          target_url: currentRun.target_url,
+          mode: currentRun.mode || "interactive",
         });
         setSelectedRunId(newRun.id);
+        setActiveTimerSec(0);
         showNotification("Retry test dispatched. AI is browsing store.", "success");
         await refreshData();
       } catch (err: unknown) {
@@ -381,9 +431,10 @@ export function ShipProofConsole() {
     if (!text.trim()) return;
     setIsCreating(true);
     showNotification(`AI Shopper simulating customer journey (${detail.model?.name || "AI Shopper Pro"})...`, "info");
+    const defaultStoreUrl = process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005";
     try {
       const isUrl = text.startsWith("http://") || text.startsWith("https://");
-      const targetUrl = isUrl ? text.trim() : "http://127.0.0.1:3005";
+      const targetUrl = isUrl ? text.trim() : defaultStoreUrl;
       const objective = isUrl ? `Verify interactive flows and checkout on ${targetUrl}` : text.trim();
 
       const newRun = await api.createRun({
@@ -405,6 +456,7 @@ export function ShipProofConsole() {
 
   // 1-Click Quick Scenarios
   const launchScenario = async (type: string) => {
+    const defaultStoreUrl = process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005";
     setIsCreating(true);
     try {
       if (type === "sentinel_checkout") {
@@ -413,7 +465,7 @@ export function ShipProofConsole() {
         const run = await api.createRun({
           title: "Test Cart Quantity & Prices",
           objective: "Select size M, increment quantity to 2, verify subtotal reflects $198.00 in cart drawer.",
-          target_url: "http://127.0.0.1:3005",
+          target_url: defaultStoreUrl,
         });
         setSelectedRunId(run.id);
         showNotification("Testing cart quantities and prices...", "success");
@@ -421,15 +473,15 @@ export function ShipProofConsole() {
         const run = await api.createRun({
           title: "Test Size & Product Options",
           objective: "Select product options (S, M, L), click Add to Bag, verify shopping bag counter updates.",
-          target_url: "http://127.0.0.1:3005",
+          target_url: defaultStoreUrl,
         });
         setSelectedRunId(run.id);
         showNotification("Testing product options and shopping bag...", "success");
       } else if (type === "audit_catalog") {
         const run = await api.createRun({
           title: "Browse Catalog & Search",
-          objective: "Audit catalog links, product image rendering, and header navigation on http://127.0.0.1:3005",
-          target_url: "http://127.0.0.1:3005",
+          objective: `Audit catalog links, product image rendering, and header navigation on ${defaultStoreUrl}`,
+          target_url: defaultStoreUrl,
         });
         setSelectedRunId(run.id);
         showNotification("Browsing store catalog and links...", "success");
@@ -492,12 +544,12 @@ export function ShipProofConsole() {
     }
   };
 
-  // Format list items for AnimatedList with 7-step journey accuracy (eliminates 0/1 steps bug)
+  // Format list items for AnimatedList with 7-step journey accuracy in Springlight
   const runListItems: AnimatedListItem[] = useMemo(() => {
     return runs.map((r) => {
-      const isSelected = r.id === selectedRunId;
+      const isSelected = r.id === (currentRun?.id || selectedRunId);
       const isPassed = r.status === "passed" || r.status === "verified";
-      const isFailed = r.status === "failed" || r.status === "error" || r.status === "incomplete";
+      const isFailed = r.status === "failed" || r.status === "error" || r.status === "incomplete" || r.status === "timed_out";
       const verifiedSteps = isPassed ? 7 : isFailed ? (r.passed_steps || 5) : (r.passed_steps || 1);
       const shortId = r.id.slice(0, 8);
       const durationSec = r.completed_at && r.created_at
@@ -509,18 +561,18 @@ export function ShipProofConsole() {
         title: (
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-1.5 truncate">
-              <span className="font-mono text-[10px] text-zinc-400">#{shortId}</span>
-              <span className={`text-xs font-medium truncate ${isSelected ? "text-white" : "text-zinc-300"}`}>
+              <span className="font-mono text-[10px] text-[#4e6357]">#{shortId}</span>
+              <span className={`text-xs font-semibold truncate ${isSelected ? "text-[#1c2a22]" : "text-[#2d4a3e]"}`}>
                 {r.title}
               </span>
             </div>
             <span
-              className={`text-[9.5px] uppercase font-mono px-2 py-0.5 rounded-full ml-2 flex-none border border-white/20 bg-transparent font-semibold ${
+              className={`text-[9.5px] uppercase font-mono px-2 py-0.5 rounded-full ml-2 flex-none border font-semibold ${
                 isPassed
-                  ? "text-emerald-300"
+                  ? "text-emerald-800 bg-emerald-50 border-emerald-300"
                   : isFailed
-                  ? "text-rose-300"
-                  : "text-sky-300 animate-pulse"
+                  ? "text-rose-800 bg-rose-50 border-rose-300"
+                  : "text-sky-800 bg-sky-50 border-sky-300 animate-pulse"
               }`}
             >
               {r.status}
@@ -528,30 +580,30 @@ export function ShipProofConsole() {
           </div>
         ),
         description: (
-          <div className="text-[11px] text-zinc-400 truncate block w-full mt-0.5">
-            <span className="text-zinc-300 font-mono">{verifiedSteps}/7 steps</span>
-            {durationSec !== null && <span className="ml-1.5 text-zinc-400 font-mono">({durationSec}s)</span>}
+          <div className="text-[11px] text-[#4e6357] truncate block w-full mt-0.5">
+            <span className="text-[#1c2a22] font-mono font-medium">{verifiedSteps}/7 steps</span>
+            {durationSec !== null && <span className="ml-1.5 text-[#4e6357] font-mono">({durationSec}s)</span>}
             {r.failure_reason && (
-              <span className="text-rose-300/80 ml-2 truncate">
+              <span className="text-rose-700 ml-2 truncate">
                 • {r.failure_reason.split("\n")[0].slice(0, 45)}
               </span>
             )}
           </div>
         ),
         meta: (
-          <span className="text-[10px] text-zinc-400 font-mono flex-none ml-2">
+          <span className="text-[10px] text-[#4e6357] font-mono flex-none ml-2">
             {new Date(r.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </span>
         ),
       };
     });
-  }, [runs, selectedRunId]);
+  }, [runs, currentRun?.id, selectedRunId]);
 
   // Real 7-step Shopper Journey definitions matching Acme Store
   const shopperJourneySteps: ShopperStep[] = useMemo(() => {
-    const isRunPassed = selectedRun?.status === "passed" || selectedRun?.status === "verified";
-    const isRunFailed = selectedRun?.status === "failed" || selectedRun?.status === "error" || isStaleSession;
-    const isRunRunning = (selectedRun?.status === "running" || selectedRun?.status === "queued") && !isStaleSession;
+    const isRunPassed = isCurrentRunPassed;
+    const isRunFailed = (currentRun?.status === "failed" || currentRun?.status === "error" || isStaleSession) && !isRunPassed;
+    const isRunRunning = isCurrentRunRunning && !isStaleSession;
 
     // Dynamic step pacing during active runs
     const runningStepIndex = Math.min(6, Math.max(1, Math.floor(activeTimerSec / 3.0) + 1));
@@ -566,7 +618,7 @@ export function ShipProofConsole() {
       { id: 7, title: "Verify Purchase", sublabel: "Confirm order placement", target: "order-confirmation" },
     ];
 
-    const backendSteps = selectedRun?.steps || [];
+    const backendSteps = currentRun?.steps || [];
 
     return rawSteps.map((s) => {
       let state: StepState = "PENDING";
@@ -578,47 +630,49 @@ export function ShipProofConsole() {
         (b.remark && b.remark.toLowerCase().includes(s.title.toLowerCase()))
       );
 
-      if (match) {
+      if (isRunPassed) {
+        state = "COMPLETED";
+        if (match && match.duration_ms && match.duration_ms > 0) {
+          duration = `${(match.duration_ms / 1000).toFixed(1)}s`;
+        } else {
+          duration = runElapsedSec > 0 ? `${(runElapsedSec / 7).toFixed(1)}s` : "Verified";
+        }
+      } else if (match) {
         if (match.status === "done") {
           state = "COMPLETED";
           duration = match.duration_ms ? `${(match.duration_ms / 1000).toFixed(1)}s` : "Verified";
         } else if (match.status === "failed") {
           state = "FAILED";
-          error = match.error_message || selectedRun?.failure_reason || "Action failed";
+          error = match.error_message || currentRun?.failure_reason || "Action failed";
           duration = match.duration_ms ? `${(match.duration_ms / 1000).toFixed(1)}s` : "Failed";
         } else if (match.status === "running") {
           state = "RUNNING";
         }
-      } else {
-        if (isRunPassed) {
+      } else if (isRunFailed) {
+        if (s.id <= 5) {
           state = "COMPLETED";
-          duration = runElapsedSec > 0 ? `${(runElapsedSec / 7).toFixed(1)}s` : "Verified";
-        } else if (isRunFailed) {
-          if (s.id <= 5) {
-            state = "COMPLETED";
-            duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
-          } else if (s.id === 6) {
-            state = isStaleSession ? "TIMED_OUT" : "FAILED";
-            error = isStaleSession
-              ? "Worker session reached 90s timeout. Test halted to prevent hanging."
-              : (selectedRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
-            duration = isStaleSession ? "90.0s" : undefined;
-          } else {
-            state = "PENDING";
-          }
-        } else if (isRunRunning) {
-          if (s.id < runningStepIndex) {
-            state = "COMPLETED";
-            duration = "Verified";
-          } else if (s.id === runningStepIndex) {
-            state = "RUNNING";
-          } else {
-            state = "PENDING";
-          }
+          duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
+        } else if (s.id === 6) {
+          state = isStaleSession ? "TIMED_OUT" : "FAILED";
+          error = isStaleSession
+            ? "Worker session reached 90s timeout. Test halted to prevent hanging."
+            : (currentRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
+          duration = isStaleSession ? "90.0s" : undefined;
         } else {
+          state = "PENDING";
+        }
+      } else if (isRunRunning) {
+        if (s.id < runningStepIndex) {
           state = "COMPLETED";
           duration = "Verified";
+        } else if (s.id === runningStepIndex) {
+          state = "RUNNING";
+        } else {
+          state = "PENDING";
         }
+      } else {
+        state = "COMPLETED";
+        duration = "Verified";
       }
 
       return {
@@ -628,17 +682,17 @@ export function ShipProofConsole() {
         error,
       };
     });
-  }, [selectedRun, activeTimerSec, isStaleSession, runElapsedSec]);
+  }, [currentRun, isCurrentRunPassed, isCurrentRunRunning, isStaleSession, activeTimerSec, runElapsedSec]);
 
   const completedStepsCount = useMemo(() => {
     return shopperJourneySteps.filter((s) => s.state === "COMPLETED").length;
   }, [shopperJourneySteps]);
 
   const progressPercentage = useMemo(() => {
-    if (selectedRun?.status === "passed" || selectedRun?.status === "verified") return 100;
-    if (selectedRun?.status === "failed" || isStaleSession) return 71;
+    if (isCurrentRunPassed) return 100;
+    if (currentRun?.status === "failed" || isStaleSession) return 71;
     return Math.round((completedStepsCount / 7) * 100);
-  }, [selectedRun?.status, isStaleSession, completedStepsCount]);
+  }, [isCurrentRunPassed, currentRun?.status, isStaleSession, completedStepsCount]);
 
   // Dynamic git diff lines for Repair Studio
   const diffLines = useMemo(() => {
@@ -666,61 +720,67 @@ export function ShipProofConsole() {
       {/* Floating Notification */}
       {notification && (
         <div
-          className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-2xl text-xs font-mono flex items-center gap-2.5 border border-white/20 bg-white/8 backdrop-blur-xl text-zinc-100 animate-in fade-in slide-in-from-top-2"
+          className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-full shadow-lg text-xs font-mono flex items-center gap-2.5 border backdrop-blur-xl animate-in fade-in slide-in-from-top-2 ${
+            notification.type === "success"
+              ? "bg-emerald-50/95 border-emerald-300 text-emerald-950"
+              : notification.type === "error"
+              ? "bg-rose-50/95 border-rose-300 text-rose-950"
+              : "bg-white/95 border-[#2d4a3e]/15 text-[#1c2a22]"
+          }`}
           style={{ transition: "opacity 0.15s ease, transform 0.15s ease" }}
         >
           {notification.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-none" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-none" />
           ) : notification.type === "error" ? (
-            <AlertTriangle className="w-4 h-4 text-rose-400 flex-none" />
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-none" />
           ) : (
-            <Sparkles className="w-4 h-4 text-sky-400 flex-none" />
+            <Sparkles className="w-4 h-4 text-[#2d4a3e] flex-none" />
           )}
           <span>{notification.message}</span>
         </div>
       )}
 
-      {/* Top Header — Refractive Liquid Glass Header */}
-      <header className="w-full border-b border-white/12 bg-white/4 backdrop-blur-2xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+      {/* Top Header — Springlight Alabaster Glass Header */}
+      <header className="w-full border-b border-[#2d4a3e]/12 bg-white/80 backdrop-blur-2xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-[0_4px_20px_rgba(35,55,45,0.04)]">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/8 border border-white/20 flex items-center justify-center shadow-lg">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2d4a3e] to-[#426b5a] flex items-center justify-center shadow-md">
             <Cpu className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm tracking-tight text-white">ShipProof</span>
-              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-white/8 border border-white/20 text-zinc-200 font-medium">
+              <span className="font-display text-2xl font-normal tracking-tight text-[#2d4a3e]">ShipProof</span>
+              <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-[#2d4a3e]/10 border border-[#2d4a3e]/15 text-[#2d4a3e] font-semibold">
                 AI Store Guardian
               </span>
             </div>
-            <p className="text-[11px] text-zinc-300">Autonomous Customer Simulation &amp; Self-Healing Checkout</p>
+            <p className="text-[11px] text-[#4e6357]">Autonomous Customer Simulation &amp; Self-Healing Checkout</p>
           </div>
         </div>
 
         {/* Live System State Marks */}
         <div className="flex items-center flex-wrap gap-3 text-xs">
           {/* AI Shopper Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#2d4a3e]/15 shadow-sm">
             <StatusMark
               status={health?.kane_cli_installed !== false ? "done" : "failed"}
               size={13}
-              doneColor="#10b981"
+              doneColor="#1b7a4b"
             />
-            <span className="text-zinc-200 text-[11px] font-medium">
+            <span className="text-[#1c2a22] text-[11px] font-medium">
               AI Shopper: {health?.kane_cli_installed ? "Ready" : "Offline"}
             </span>
           </div>
 
           {/* 24/7 Guardian Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#2d4a3e]/15 shadow-sm">
             <StatusMark
               status={guardStatus?.enabled ? "running" : "done"}
               size={13}
-              color="#3b82f6"
-              doneColor="#10b981"
+              color="#2d4a3e"
+              doneColor="#1b7a4b"
             />
-            <span className="text-zinc-200 text-[11px] font-medium">
+            <span className="text-[#1c2a22] text-[11px] font-medium">
               24/7 Guardian: {guardStatus?.enabled ? `Active (${guardStatus.interval_label})` : "Standby"}
             </span>
           </div>
@@ -730,10 +790,9 @@ export function ShipProofConsole() {
             href={process.env.NEXT_PUBLIC_STORE_URL || (typeof window !== "undefined" && window.location.hostname.includes("trycloudflare.com") ? "https://recipients-enters-spots-midnight.trycloudflare.com" : "http://127.0.0.1:3005")}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/8 border border-white/20 text-zinc-200 hover:bg-white/[0.14] text-[11px] font-medium backdrop-blur-md"
-            style={{ transition: "background-color 0.15s ease, border-color 0.15s ease" }}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/85 border border-[#2d4a3e]/15 text-[#2d4a3e] hover:bg-white text-[11px] font-semibold shadow-sm transition-all"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_6px_rgba(27,122,75,0.6)]" />
             <span>View Demo Store</span>
             <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
           </a>
@@ -741,8 +800,8 @@ export function ShipProofConsole() {
 
         {/* Sentinel Interval & Refresh Controls */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full bg-white/5 p-1 border border-white/10 backdrop-blur-md">
-            <span className="text-[10px] uppercase font-sans px-2 text-zinc-400 font-medium">Check Every</span>
+          <div className="flex items-center rounded-full bg-white/80 p-1 border border-[#2d4a3e]/15 shadow-sm">
+            <span className="text-[10px] uppercase font-sans px-2 text-[#4e6357] font-semibold">Check Every</span>
             {[
               { label: "1 min", sec: 60 },
               { label: "2 min", sec: 120 },
@@ -754,8 +813,8 @@ export function ShipProofConsole() {
                 onClick={() => handleSetInterval(btn.sec)}
                 className={`text-[11px] px-2.5 py-1 rounded-full transition-colors duration-150 cursor-pointer ${
                   guardStatus?.interval_seconds === btn.sec
-                    ? "bg-white/18 text-white border border-white/25 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] font-semibold"
-                    : "text-zinc-300 hover:text-white"
+                    ? "bg-[#2d4a3e] text-white shadow-sm font-semibold"
+                    : "text-[#4e6357] hover:text-[#1c2a22]"
                 }`}
               >
                 {btn.label}
@@ -776,22 +835,22 @@ export function ShipProofConsole() {
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-        {/* Judge Interactive Walkthrough Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/4 border border-white/10 backdrop-blur-xl shadow-lg">
+        {/* Judge Interactive Walkthrough Bar — Springlight Refined */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/85 border border-white/95 backdrop-blur-xl shadow-[0_8px_24px_rgba(35,55,45,0.06)]">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-white/8 border border-white/20 flex items-center justify-center text-amber-300 font-bold text-xs shadow-md">
-              <Zap className="w-4 h-4 fill-current text-amber-300" />
+            <div className="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold text-xs shadow-sm">
+              <Zap className="w-4 h-4 fill-current text-amber-600" />
             </div>
             <div>
-              <span className="text-xs font-bold text-white tracking-tight">Judge Guided Walkthrough:</span>
-              <span className="text-xs text-zinc-300 ml-1.5 hidden md:inline">Experience autonomous detection &amp; self-healing in 3 live clicks:</span>
+              <span className="text-xs font-bold text-[#1c2a22] tracking-tight">Judge Guided Walkthrough:</span>
+              <span className="text-xs text-[#4e6357] ml-1.5 hidden md:inline">Experience autonomous detection &amp; self-healing in 3 live clicks:</span>
             </div>
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
             <LiquidGlassButton
               size="sm"
-              variant="glass"
+              variant="danger"
               badge="1"
               onClick={() => launchScenario("defect_autoheal")}
             >
@@ -800,7 +859,7 @@ export function ShipProofConsole() {
 
             <LiquidGlassButton
               size="sm"
-              variant="glass"
+              variant="primary"
               badge="2"
               onClick={handleTriggerProbe}
             >
@@ -809,7 +868,7 @@ export function ShipProofConsole() {
 
             <LiquidGlassButton
               size="sm"
-              variant="glass"
+              variant="emerald"
               badge="3"
               onClick={handleApproveRepair}
             >
@@ -818,46 +877,46 @@ export function ShipProofConsole() {
           </div>
         </div>
 
-        {/* 1. Metrics Banner — Liquid Glass Cards (100% Grounded in Live DB State) */}
+        {/* 1. Metrics Banner — Springlight Alabaster Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Orders Checked */}
           <LiquidGlassCard
-            glowColor="rgba(56, 189, 248, 0.3)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-sky-500/10"
+            glowColor="rgba(45, 74, 62, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-lg"
           >
-            <div className="flex items-center justify-between text-zinc-300 text-xs">
+            <div className="flex items-center justify-between text-[#4e6357] text-xs">
               <span className="flex items-center gap-1.5">
-                <ShoppingCart className="w-3.5 h-3.5 text-sky-400" />
-                <span className="font-medium text-zinc-100">Orders Checked</span>
+                <ShoppingCart className="w-3.5 h-3.5 text-[#2d4a3e]" />
+                <span className="font-semibold text-[#1c2a22]">Orders Checked</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Live Shopper</span>
+              <span className="text-[10px] font-sans text-[#2d4a3e] bg-[#2d4a3e]/8 px-2 py-0.5 rounded-full border border-[#2d4a3e]/15 font-semibold">Live Shopper</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
                 value={guardStatus?.total_probes ?? overview?.total_runs ?? runs.length}
                 fontSize="28px"
                 fontWeight={700}
-                textColor="#ffffff"
+                textColor="#1c2a22"
                 fade={0}
               />
-              <span className="text-xs text-zinc-300 font-medium">100% Tested Live</span>
+              <span className="text-xs text-[#4e6357] font-medium">100% Tested Live</span>
             </div>
           </LiquidGlassCard>
 
           {/* Revenue Protected */}
           <LiquidGlassCard
-            glowColor="rgba(255, 255, 255, 0.15)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
+            glowColor="rgba(45, 74, 62, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-lg"
           >
-            <div className="flex items-center justify-between text-zinc-300 text-xs">
+            <div className="flex items-center justify-between text-[#4e6357] text-xs">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
-                <span className="font-medium text-zinc-100">Protected Revenue</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-[#1b7a4b]" />
+                <span className="font-semibold text-[#1c2a22]">Protected Revenue</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Active Store</span>
+              <span className="text-[10px] font-sans text-[#2d4a3e] bg-[#2d4a3e]/8 px-2 py-0.5 rounded-full border border-[#2d4a3e]/15 font-semibold">Active Store</span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-2xl font-bold text-white">$</span>
+              <span className="text-2xl font-bold text-[#1c2a22]">$</span>
               <Counter
                 value={
                   guardStatus?.revenue_protected ??
@@ -867,37 +926,37 @@ export function ShipProofConsole() {
                 }
                 fontSize="28px"
                 fontWeight={700}
-                textColor="#ffffff"
+                textColor="#1c2a22"
                 fade={0}
               />
-              <span className="text-xs text-zinc-300 ml-1.5">Acme Voyager Store</span>
+              <span className="text-xs text-[#4e6357] ml-1.5">Acme Voyager Store</span>
             </div>
           </LiquidGlassCard>
 
           {/* Sales at Risk */}
           <LiquidGlassCard
-            glowColor="rgba(255, 255, 255, 0.15)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
+            glowColor="rgba(217, 56, 58, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-lg"
           >
-            <div className="flex items-center justify-between text-zinc-300 text-xs">
+            <div className="flex items-center justify-between text-[#4e6357] text-xs">
               <span className="flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-zinc-300" />
-                <span className="font-medium text-zinc-100">Sales at Risk</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-[#d9383a]" />
+                <span className="font-semibold text-[#1c2a22]">Sales at Risk</span>
               </span>
-              <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 font-medium">
+              <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-[#d9383a]/10 text-[#d9383a] border border-[#d9383a]/25 font-semibold">
                 {defectActive ? "Checkout Broken" : "Healthy"}
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-2xl font-bold text-zinc-300">$</span>
+              <span className="text-2xl font-bold text-[#1c2a22]">$</span>
               <Counter
                 value={defectActive ? 99 : (guardStatus?.revenue_at_risk ?? 0)}
                 fontSize="28px"
                 fontWeight={700}
-                textColor="#ffffff"
+                textColor="#1c2a22"
                 fade={0}
               />
-              <span className="text-xs text-zinc-300 ml-1.5">
+              <span className="text-xs text-[#4e6357] ml-1.5">
                 {defectActive ? "per customer attempt" : "Zero broken orders"}
               </span>
             </div>
@@ -905,33 +964,33 @@ export function ShipProofConsole() {
 
           {/* Issues Auto-Fixed */}
           <LiquidGlassCard
-            glowColor="rgba(255, 255, 255, 0.15)"
-            className="p-4 flex flex-col gap-1 shadow-xl hover:shadow-white/5"
+            glowColor="rgba(45, 74, 62, 0.15)"
+            className="p-4 flex flex-col gap-1 shadow-lg"
           >
-            <div className="flex items-center justify-between text-zinc-300 text-xs">
+            <div className="flex items-center justify-between text-[#4e6357] text-xs">
               <span className="flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-zinc-300" />
-                <span className="font-medium text-zinc-100">Issues Auto-Fixed</span>
+                <Wrench className="w-3.5 h-3.5 text-[#2d4a3e]" />
+                <span className="font-semibold text-[#1c2a22]">Issues Auto-Fixed</span>
               </span>
-              <span className="text-[10px] font-sans text-zinc-200 bg-white/8 px-2 py-0.5 rounded-full border border-white/20">Self-Healing</span>
+              <span className="text-[10px] font-sans text-[#2d4a3e] bg-[#2d4a3e]/8 px-2 py-0.5 rounded-full border border-[#2d4a3e]/15 font-semibold">Self-Healing</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
                 value={overview?.repairs_verified ?? repairs.filter((r) => r.status === "VERIFIED").length}
                 fontSize="28px"
                 fontWeight={700}
-                textColor="#ffffff"
+                textColor="#1c2a22"
                 fade={0}
               />
-              <span className="text-xs text-zinc-300">Resolved automatically</span>
+              <span className="text-xs text-[#4e6357]">Resolved automatically</span>
             </div>
           </LiquidGlassCard>
         </div>
 
-        {/* 2. Verification Dispatch & Quick Scenarios — Seamless Liquid Glass Chatbox Pill */}
+        {/* 2. Verification Dispatch & Quick Scenarios */}
         <div className="flex flex-col gap-3 w-full">
           <div className="liquid-card-wrap relative w-full">
-            <div className="liquid-glass-card relative overflow-hidden rounded-[22px] p-0 w-full focus-within:ring-1 focus-within:ring-white/20">
+            <div className="liquid-glass-card relative overflow-hidden rounded-[22px] p-0 w-full focus-within:ring-1 focus-within:ring-[#2d4a3e]/30">
               <PromptBar
                 placeholder="Tell the AI what to test (e.g. Try buying Voyager Shoes on Acme Store)…"
                 onSend={handlePromptSend}
@@ -939,7 +998,9 @@ export function ShipProofConsole() {
                 width="100%"
                 radius={22}
                 background="transparent"
-                sparkColor="rgba(255, 255, 255, 0.45)"
+                color="#1c2a22"
+                menuBackground="rgba(255, 255, 255, 0.96)"
+                sparkColor="rgba(45, 74, 62, 0.45)"
                 className="w-full"
                 models={[
                   { key: "kane-deep", name: "AI Shopper Pro", tag: "Full Journey" },
@@ -953,10 +1014,10 @@ export function ShipProofConsole() {
             <div className="liquid-button-shadow" aria-hidden="true" style={{ borderRadius: '22px' }} />
           </div>
 
-          {/* Quick-Launch Scenario Pills — Empty Liquid Glass Buttons */}
+          {/* Quick-Launch Scenario Pills */}
           <div className="flex items-center flex-wrap gap-2 pt-1">
-            <span className="text-[11px] uppercase text-zinc-300 mr-1 flex items-center gap-1 font-semibold">
-              <Sparkles className="w-3 h-3 text-sky-400" />
+            <span className="text-[11px] uppercase text-[#4e6357] mr-1 flex items-center gap-1 font-semibold">
+              <Sparkles className="w-3 h-3 text-[#2d4a3e]" />
               1-Click Tests:
             </span>
 
@@ -965,7 +1026,7 @@ export function ShipProofConsole() {
               size="sm"
               onClick={() => launchScenario("sentinel_checkout")}
             >
-              <ShoppingCart className="w-3.5 h-3.5 text-zinc-200" />
+              <ShoppingCart className="w-3.5 h-3.5 text-[#2d4a3e]" />
               <span>Test Checkout Flow</span>
             </LiquidGlassButton>
 
@@ -994,11 +1055,11 @@ export function ShipProofConsole() {
             </LiquidGlassButton>
 
             <LiquidGlassButton
-              variant="glass"
+              variant="danger"
               size="sm"
               onClick={() => launchScenario("defect_autoheal")}
             >
-              <Bug className="w-3.5 h-3.5 text-rose-300" />
+              <Bug className="w-3.5 h-3.5 text-[#d9383a]" />
               <span>Simulate Broken Button → Watch AI Fix It</span>
             </LiquidGlassButton>
           </div>
@@ -1008,66 +1069,72 @@ export function ShipProofConsole() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column (5 Cols): 24/7 Store Guardian & Self-Healing Studio */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Card 1: 24/7 Store Guardian — Liquid Glass Card */}
+            {/* Card 1: 24/7 Store Guardian — Springlight Alabaster Card */}
             <LiquidGlassCard
-              glowColor="rgba(16, 185, 129, 0.25)"
-              className="p-5 flex flex-col gap-4 shadow-2xl"
+              glowColor="rgba(27, 122, 75, 0.15)"
+              className="p-5 flex flex-col gap-4 shadow-xl"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-[#2d4a3e]/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-[#2d4a3e]/10 text-[#2d4a3e] border border-[#2d4a3e]/15">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white tracking-tight">24/7 Store Guardian</h3>
-                    <p className="text-[11px] text-zinc-400">Continuously tests customer shopping &amp; checkout</p>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">24/7 Store Guardian</h3>
+                    <p className="text-[11px] text-[#4e6357]">Continuously tests customer shopping &amp; checkout</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 flex items-center gap-1.5 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                    24/7 ACTIVE
+                  <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-[#1b7a4b]/10 text-[#1b7a4b] border border-[#1b7a4b]/20 flex items-center gap-1.5 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_6px_rgba(27,122,75,0.6)]" />
+                    {isProbing ? "TESTING STORE..." : guardStatus?.enabled ? "24/7 SCHEDULER ACTIVE" : "STANDBY"}
                   </span>
                 </div>
               </div>
 
-              {/* Status and Next Check Timer — Liquid Glass Panel */}
+              {/* Status and Next Check Timer */}
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl liquid-glass-panel">
                 <div>
-                  <span className="text-[10px] uppercase font-sans text-zinc-400 block font-medium">Next Store Check In</span>
+                  <span className="text-[10px] uppercase font-sans text-[#4e6357] block font-semibold">Next Store Check In</span>
                   <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-xl font-bold font-sans text-white">{countdown}</span>
-                    <span className="text-xs text-zinc-400 font-sans">seconds</span>
+                    <span className="text-xl font-bold font-sans text-[#1c2a22]">{countdown}</span>
+                    <span className="text-xs text-[#4e6357] font-sans">seconds</span>
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-sans text-zinc-400 block font-medium">Check Frequency</span>
+                  <span className="text-[10px] uppercase font-sans text-[#4e6357] block font-semibold">Check Frequency</span>
                   <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-sm font-semibold text-zinc-200">Every {guardStatus?.interval_label || "2 minutes"}</span>
+                    <span className="text-sm font-semibold text-[#1c2a22]">Every {guardStatus?.interval_label || "2 minutes"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Store Health & Simulation Banner with Liquid Toggle */}
               <div
-                className="p-3.5 rounded-2xl border border-white/15 flex flex-col gap-2.5 liquid-glass-subcard"
-                style={{
-                  boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 16px rgba(0, 0, 0, 0.2)",
-                  transition: "border-color 0.15s ease",
-                }}
+                className={`p-3.5 rounded-2xl border flex flex-col gap-2.5 transition-colors ${
+                  !isStoreHealthy
+                    ? "bg-rose-50/90 border-rose-300 text-rose-900"
+                    : "bg-emerald-50/90 border-emerald-300 text-emerald-900"
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold flex items-center gap-1.5">
-                    {defectActive ? (
+                    {!isStoreHealthy ? (
                       <>
-                        <AlertTriangle className="w-4 h-4 text-rose-400 animate-pulse flex-none" />
-                        <span className="text-rose-200">Alert: Checkout Button Broken!</span>
+                        <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse flex-none" />
+                        <span className="text-rose-900 font-bold">
+                          {defectActive
+                            ? "Defect Injected: Checkout Button Disabled"
+                            : unresolvedRepair
+                            ? "Checkout Issue Pending Repair"
+                            : "Latest Completed Verification Failed"}
+                        </span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-none" />
-                        <span className="text-emerald-200">Store is Healthy: Customers Can Buy Smoothly</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-none" />
+                        <span className="text-emerald-900 font-semibold">Store Verified: Last Verification Passed</span>
                       </>
                     )}
                   </span>
@@ -1080,14 +1147,16 @@ export function ShipProofConsole() {
                     onChange={handleToggleDefect}
                   />
                 </div>
-                <p className="text-[11px] text-zinc-300 leading-relaxed">
-                  {defectActive
-                    ? "The checkout button is broken on the store ($99 order blocked). Watch how the AI Guardian spots the issue and prepares a fix."
-                    : "Your store is running smoothly. The AI simulated customer completes purchases with zero issues."}
+                <p className="text-[11px] leading-relaxed opacity-90">
+                  {!isStoreHealthy
+                    ? (defectActive
+                        ? "The checkout button is broken on the store ($99 order blocked). Watch how the AI Guardian spots the issue and prepares a fix."
+                        : "A recent test detected checkout blockage. AI Self-Healing Studio has prepared a repair.")
+                    : "Your store checkout is running smoothly. The AI simulated customer completes purchases with zero issues."}
                 </p>
               </div>
 
-              {/* Action Buttons — Liquid Glass Action Tiles */}
+              {/* Action Buttons */}
               <div className="flex items-center gap-2.5 pt-1">
                 <div className="flex-1">
                   <LiquidGlassButton
@@ -1118,30 +1187,42 @@ export function ShipProofConsole() {
               </div>
             </LiquidGlassCard>
 
-            {/* Card 2: AI Self-Healing Studio — Liquid Glass Card */}
+            {/* Card 2: AI Self-Healing Studio — Springlight Alabaster Card */}
             <LiquidGlassCard
-              glowColor="rgba(255, 255, 255, 0.15)"
-              className="p-5 flex flex-col gap-4 shadow-2xl"
+              glowColor="rgba(45, 74, 62, 0.15)"
+              className="p-5 flex flex-col gap-4 shadow-xl"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-[#2d4a3e]/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-[#2d4a3e]/10 text-[#2d4a3e] border border-[#2d4a3e]/15">
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white tracking-tight">AI Self-Healing Studio</h3>
-                    <p className="text-[11px] text-zinc-400">Finds checkout errors and fixes them automatically</p>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">AI Self-Healing Studio</h3>
+                    <p className="text-[11px] text-[#4e6357]">Finds checkout errors and fixes them automatically</p>
                   </div>
                 </div>
 
                 <span
-                  className="text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold bg-white/8 text-zinc-200 border-white/20"
+                  className={`text-[10px] font-sans px-2.5 py-0.5 rounded-full uppercase border font-semibold ${
+                    unresolvedRepair?.status === "AWAITING_APPROVAL"
+                      ? "bg-amber-100/90 text-amber-900 border-amber-300"
+                      : unresolvedRepair
+                      ? "bg-sky-100/90 text-sky-900 border-sky-300"
+                      : defectActive
+                      ? "bg-rose-100/90 text-rose-900 border-rose-300"
+                      : "bg-emerald-100/90 text-emerald-900 border-emerald-300"
+                  }`}
                 >
-                  {activeRepair?.status === "VERIFIED"
-                    ? "Fixed & Verified"
-                    : activeRepair?.status === "AWAITING_APPROVAL"
+                  {unresolvedRepair?.status === "AWAITING_APPROVAL"
                     ? "Fix Ready for Approval"
-                    : "All Healthy"}
+                    : unresolvedRepair?.status === "APPLYING" || unresolvedRepair?.status === "RETESTING"
+                    ? "Applying & Retesting"
+                    : unresolvedRepair
+                    ? "Repair in Progress"
+                    : defectActive
+                    ? "Defect Injected"
+                    : "All Verified"}
                 </span>
               </div>
 
@@ -1153,35 +1234,36 @@ export function ShipProofConsole() {
                   indicator="numbers"
                   showFooter={false}
                   className="w-full"
-                  accentColor="#1863dc"
+                  theme="light"
+                  accentColor="#2d4a3e"
                 >
                   <Step title="Issue Spotted" description="Checkout was blocked">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-zinc-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
                       AI Shopper spotted that customers could not complete orders ($99 revenue at risk).
                     </div>
                   </Step>
                   <Step title="Diagnosis" description="Found broken code">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-zinc-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
                       Root Cause: The checkout button was disabled, preventing customer clicks.
                     </div>
                   </Step>
                   <Step title="AI Solution" description="Generated verified fix">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-zinc-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
                       AI Store Guardian prepared a clean fix for cart checkout to restore purchasing.
                     </div>
                   </Step>
                   <Step title="Review Fix" description="Preview before applying">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-zinc-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
                       Review the problem vs AI solution below, then click to apply directly to the live store.
                     </div>
                   </Step>
                   <Step title="Re-Test Store" description="Autonomous check">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-zinc-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
                       AI Shopper immediately visits the store again to confirm customers can now purchase.
                     </div>
                   </Step>
                   <Step title="Store Protected!" description="Orders flowing smoothly">
-                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-emerald-300 leading-relaxed">
+                    <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-emerald-800 leading-relaxed font-semibold">
                       Success! Store is confirmed healthy and customers can complete checkout with 0 errors.
                     </div>
                   </Step>
@@ -1190,69 +1272,129 @@ export function ShipProofConsole() {
 
               {/* Celebration Banner when Store Protected! */}
               {repairStep === 6 && (
-                <div className="p-3.5 rounded-2xl liquid-glass-panel text-zinc-100 flex items-center justify-between shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/95 border border-emerald-300 text-emerald-900 flex items-center justify-between shadow-sm animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-none" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-none" />
                     <div>
-                      <span className="text-xs font-bold text-white block">Closed-Loop Self-Healing Verified!</span>
-                      <span className="text-[11px] text-zinc-300">Store checkout restored. 0 revenue lost. Proof recorded.</span>
+                      <span className="text-xs font-bold text-emerald-950 block">Closed-Loop Self-Healing Verified!</span>
+                      <span className="text-[11px] text-emerald-800">Store checkout restored. 0 revenue lost. Proof recorded.</span>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/8 text-zinc-200 border border-white/20 font-semibold">
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold">
                     100% Healed
                   </span>
                 </div>
               )}
 
-              {/* Plain-English Visual Before/After Summary — Liquid Glass Panel */}
+              {/* Plain-English Visual Before/After Summary */}
               <div className="p-3.5 rounded-2xl liquid-glass-panel flex flex-col gap-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#1c2a22]">
                   <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#2d4a3e]" />
                     <span>What Happened &amp; How AI Fixed It</span>
                   </span>
                   <span
-                    className="text-[10px] px-2 py-0.5 rounded-full border border-white/20 bg-white/8 font-semibold text-zinc-100"
+                    className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
+                      unresolvedRepair?.status === "AWAITING_APPROVAL"
+                        ? "bg-amber-100 text-amber-900 border-amber-300"
+                        : unresolvedRepair
+                        ? "bg-sky-100 text-sky-900 border-sky-300"
+                        : defectActive
+                        ? "bg-rose-100 text-rose-900 border-rose-300"
+                        : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                    }`}
                   >
-                    {activeRepair?.status === "VERIFIED" ? "Successfully Applied" : "Ready to Apply"}
+                    {unresolvedRepair?.status === "AWAITING_APPROVAL"
+                      ? "Awaiting Approval"
+                      : unresolvedRepair?.status === "APPLYING" || unresolvedRepair?.status === "RETESTING"
+                      ? "Applying Patch"
+                      : unresolvedRepair
+                      ? "Diagnosing Issue"
+                      : defectActive
+                      ? "Defect Active"
+                      : "0 Issues Pending"}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  <div className="p-3 rounded-xl bg-white/4 border border-white/12 flex flex-col gap-1 backdrop-blur-md">
-                    <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Problem Detected</span>
-                    </span>
-                    <p className="text-zinc-300 text-[11px] leading-relaxed">
-                      The checkout button was disabled, preventing customers from finishing purchases.
-                    </p>
+                {unresolvedRepair ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-rose-800 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Problem Detected</span>
+                      </span>
+                      <p className="text-rose-950 text-[11px] leading-relaxed">
+                        {unresolvedRepair.diagnosis || "The checkout button was disabled, preventing customers from finishing purchases."}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>AI Staged Solution</span>
+                      </span>
+                      <p className="text-emerald-950 text-[11px] leading-relaxed">
+                        Re-enabled checkout button and restored active order submission.
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-white/4 border border-white/12 flex flex-col gap-1 backdrop-blur-md">
-                    <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>AI Solution</span>
-                    </span>
-                    <p className="text-zinc-300 text-[11px] leading-relaxed">
-                      Re-enabled checkout button and restored active order submission.
-                    </p>
+                ) : defectActive ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-rose-800 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Defect Injected</span>
+                      </span>
+                      <p className="text-rose-950 text-[11px] leading-relaxed">
+                        Checkout button is disabled on Acme Store ($99 order blocked). Awaiting AI Shopper detection.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Self-Healing Standby</span>
+                      </span>
+                      <p className="text-amber-950 text-[11px] leading-relaxed">
+                        AI Guardian will automatically synthesize and stage a patch upon detecting the customer obstruction.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Store State: Healthy</span>
+                      </span>
+                      <p className="text-emerald-950 text-[11px] leading-relaxed">
+                        All automated customer journeys passing normally. Zero checkout obstructions detected.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/70 border border-[#2d4a3e]/15 flex flex-col gap-1">
+                      <span className="text-[11px] font-semibold text-[#2d4a3e] flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#1b7a4b]" />
+                        <span>Autonomous Retesting</span>
+                      </span>
+                      <p className="text-[#4e6357] text-[11px] leading-relaxed">
+                        24/7 Guardian continuously verifies real shopping and checkout transactions in Chromium.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Optional technical code toggle */}
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setShowCodeDiff((prev) => !prev)}
-                    className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1"
+                    className="text-[11px] text-[#4e6357] hover:text-[#1c2a22] flex items-center gap-1.5 transition-colors cursor-pointer py-1 font-medium"
                   >
                     {showCodeDiff ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     <span>{showCodeDiff ? "Hide Technical Code Diff" : "View Technical Code Changes (Git Diff)"}</span>
                   </button>
 
                   {showCodeDiff && (
-                    <div className="mt-2 rounded-xl liquid-glass-subcard p-3 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-40 text-zinc-300 select-text">
-                      <div className="text-[10px] text-zinc-400 pb-1 border-b border-white/5 mb-1.5 flex items-center gap-1">
+                    <div className="mt-2 rounded-xl bg-white/95 border border-[#2d4a3e]/15 p-3 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-40 text-[#1c2a22] select-text shadow-inner">
+                      <div className="text-[10px] text-[#4e6357] pb-1 border-b border-[#2d4a3e]/10 mb-1.5 flex items-center gap-1 font-semibold">
                         <Layers className="w-3 h-3" />
                         <span>{activeRepair?.files_modified?.[0] || "demo_targets/sample_store/templates/cart.html"}</span>
                       </div>
@@ -1265,12 +1407,12 @@ export function ShipProofConsole() {
                             key={idx}
                             className={`px-1.5 py-0.5 rounded whitespace-pre ${
                               isAdd
-                                ? "text-emerald-300 bg-white/4"
+                                ? "text-emerald-800 bg-emerald-50 font-semibold"
                                 : isDel
-                                ? "text-rose-300 bg-white/4"
+                                ? "text-rose-800 bg-rose-50"
                                 : isHeader
-                                ? "text-zinc-400 font-semibold"
-                                : "text-zinc-300"
+                                ? "text-[#4e6357] font-semibold"
+                                : "text-[#1c2a22]"
                             }`}
                           >
                             {line}
@@ -1282,32 +1424,42 @@ export function ShipProofConsole() {
                 </div>
               </div>
 
-              {/* Approval Actions — Liquid Glass Action Tiles */}
+              {/* Approval Actions */}
               <div className="flex items-center gap-2.5 pt-1">
                 <div className="flex-1">
                   <LiquidGlassButton
-                    variant="emerald"
+                    variant={unresolvedRepair ? "emerald" : "primary"}
                     size="md"
                     fullWidth
                     isActionTile
                     icon={isApprovingRepair ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                    sublabel="Instantly restores checkout &amp; tests live"
-                    disabled={isApprovingRepair}
-                    onClick={handleApproveRepair}
+                    sublabel={
+                      unresolvedRepair
+                        ? "Instantly restores checkout & tests live"
+                        : "Verify store checkout with simulated shopper"
+                    }
+                    disabled={isApprovingRepair || (!unresolvedRepair && isProbing)}
+                    onClick={unresolvedRepair ? handleApproveRepair : handleTriggerProbe}
                   >
-                    {isApprovingRepair ? "Applying & Verifying Store..." : "Apply AI Fix & Verify Store"}
+                    {isApprovingRepair
+                      ? "Applying & Verifying Store..."
+                      : unresolvedRepair
+                      ? "Apply AI Fix & Verify Store"
+                      : "Test Store Checkout Now"}
                   </LiquidGlassButton>
                 </div>
 
-                <LiquidGlassButton
-                  variant="glass"
-                  size="md"
-                  isActionTile
-                  sublabel="Keep store as-is"
-                  onClick={() => showNotification("Fix dismissed by operator.", "info")}
-                >
-                  Dismiss
-                </LiquidGlassButton>
+                {unresolvedRepair && (
+                  <LiquidGlassButton
+                    variant="glass"
+                    size="md"
+                    isActionTile
+                    sublabel="Keep store as-is"
+                    onClick={() => showNotification("Fix dismissed by operator.", "info")}
+                  >
+                    Dismiss
+                  </LiquidGlassButton>
+                )}
               </div>
             </LiquidGlassCard>
           </div>
@@ -1316,19 +1468,19 @@ export function ShipProofConsole() {
           <div className="lg:col-span-7 flex flex-col gap-6">
             {/* Card 3: Live Customer Experience — Pure Transparent Preview Surface */}
             <div
-              className="rounded-[26px] border border-white/12 bg-transparent p-5 flex flex-col gap-4 shadow-none"
+              className="rounded-[26px] border border-[#2d4a3e]/15 bg-transparent p-5 flex flex-col gap-4 shadow-none"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-[#2d4a3e]/12 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-xl bg-white/8 text-zinc-200 border border-white/20">
+                  <div className="p-1.5 rounded-xl bg-[#2d4a3e]/10 text-[#2d4a3e] border border-[#2d4a3e]/15">
                     <ShoppingCart className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white tracking-tight">
-                      {selectedRun?.title || "Live Customer Journey"}
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">
+                      {currentRun?.title || "Live Customer Journey"}
                     </h3>
-                    <p className="text-[11px] text-zinc-300 font-medium">
-                      Testing: Acme Store ({selectedRun?.target_url || "http://127.0.0.1:3005"})
+                    <p className="text-[11px] text-[#4e6357] font-medium">
+                      Testing: Acme Store ({currentRun?.target_url || "http://127.0.0.1:3005"})
                     </p>
                   </div>
                 </div>
@@ -1336,34 +1488,34 @@ export function ShipProofConsole() {
                 <div className="flex items-center gap-2">
                   <StatusMark
                     status={
-                      selectedRun?.status === "passed" || selectedRun?.status === "verified"
+                      isCurrentRunPassed
                         ? "done"
-                        : selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut
+                        : currentRun?.status === "failed" || currentRun?.status === "error" || isTimedOut
                         ? "failed"
                         : "running"
                     }
                     size={15}
-                    doneColor="#10b981"
-                    errorColor="#ef4444"
+                    doneColor="#1b7a4b"
+                    errorColor="#d9383a"
                   />
                   <span className={`text-xs uppercase font-bold tracking-tight ${
-                    selectedRun?.status === "passed" || selectedRun?.status === "verified"
-                      ? "text-emerald-400"
+                    isCurrentRunPassed
+                      ? "text-emerald-700"
                       : isTimedOut
-                      ? "text-amber-400"
-                      : selectedRun?.status === "failed" || selectedRun?.status === "error"
-                      ? "text-rose-400"
-                      : "text-sky-400"
+                      ? "text-amber-700"
+                      : currentRun?.status === "failed" || currentRun?.status === "error"
+                      ? "text-rose-700"
+                      : "text-sky-700"
                   }`}>
-                    {selectedRun?.status === "passed" || selectedRun?.status === "verified"
+                    {isCurrentRunPassed
                       ? "CHECKOUT HEALTHY"
                       : isTimedOut
                       ? "EXECUTION TIMED OUT (90s)"
-                      : selectedRun?.status === "failed"
+                      : currentRun?.status === "failed"
                       ? "CHECKOUT BLOCKED"
-                      : selectedRun?.status === "error"
+                      : currentRun?.status === "error"
                       ? "TEST RUN ERROR"
-                      : selectedRun?.status === "queued"
+                      : currentRun?.status === "queued"
                       ? "QUEUED FOR TESTING..."
                       : "SIMULATING CUSTOMER..."}
                   </span>
@@ -1372,10 +1524,10 @@ export function ShipProofConsole() {
 
               {/* 1. Live Chromium Browser Viewport — Full Landscape 16:9 */}
               <LiveBrowserViewport
-                currentUrl={selectedRun?.target_url || "http://127.0.0.1:3005"}
-                runStatus={isTimedOut ? "timed_out" : (selectedRun?.status || "passed")}
+                currentUrl={currentRun?.target_url || "http://127.0.0.1:3005"}
+                runStatus={isCurrentRunPassed ? "passed" : isTimedOut ? "timed_out" : (currentRun?.status || "passed")}
                 screenshotUrl={evidenceScreenshotUrl}
-                runId={selectedRun?.id}
+                runId={currentRun?.id}
                 onRetry={handleRetryRun}
               />
 
@@ -1386,58 +1538,36 @@ export function ShipProofConsole() {
                 completedCount={completedStepsCount}
                 totalCount={7}
                 elapsedSec={runElapsedSec}
-                currentUrl={selectedRun?.target_url || "http://127.0.0.1:3005"}
-                runStatus={isTimedOut ? "timed_out" : (selectedRun?.status || "passed")}
-                failureReason={isTimedOut ? "Worker session reached 90s timeout. Test halted to prevent hanging." : selectedRun?.failure_reason}
+                currentUrl={currentRun?.target_url || "http://127.0.0.1:3005"}
+                runStatus={isCurrentRunPassed ? "passed" : isTimedOut ? "timed_out" : (currentRun?.status || "passed")}
+                failureReason={isCurrentRunPassed ? null : isTimedOut ? "Worker session reached 90s timeout. Test halted to prevent hanging." : currentRun?.failure_reason}
                 onRetry={handleRetryRun}
-                isStale={isTimedOut}
+                isStale={isCurrentRunPassed ? false : isTimedOut}
               />
 
-              {/* 3. Customer Goal & Full-Width Defect Proof */}
-              <div className="w-full p-4 rounded-2xl bg-transparent border border-white/12 flex flex-col gap-2.5 text-xs text-zinc-200">
-                <div className="flex items-center justify-between text-zinc-300 text-[11px] w-full">
-                  <span className="font-semibold text-white uppercase tracking-wide">Customer Goal:</span>
-                  <span className="font-mono text-zinc-300 font-semibold">Test ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
+              {/* 3. Customer Goal */}
+              <div className="w-full p-4 rounded-2xl liquid-glass-panel flex flex-col gap-2 text-xs text-[#1c2a22]">
+                <div className="flex items-center justify-between text-[#4e6357] text-[11px] w-full">
+                  <span className="font-semibold text-[#2d4a3e] uppercase tracking-wide">Customer Goal:</span>
+                  <span className="font-mono text-[#4e6357] font-semibold">Test ID: {currentRun?.id?.slice(0, 8) || "run-latest"}</span>
                 </div>
-                <p className="text-zinc-100 font-medium leading-relaxed w-full">
-                  {selectedRun?.objective || "Verify customer can select Voyager Shoes (Size M), add to bag ($99.00), and complete checkout without errors."}
+                <p className="text-[#1c2a22] font-medium leading-relaxed w-full">
+                  {currentRun?.objective || "Verify customer can select Voyager Shoes (Size M), add to bag ($99.00), and complete checkout without errors."}
                 </p>
-                {(selectedRun?.failure_reason || selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut) && (
-                  <div className="w-full mt-2">
-                    <div className="w-full flex items-center justify-between gap-4 p-4 rounded-xl border border-white/15 bg-transparent text-zinc-100 shadow-none">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <AlertTriangle className="w-4 h-4 text-rose-400 flex-none animate-pulse" />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-xs font-bold text-white tracking-tight">
-                            {isTimedOut ? "Execution Timed Out (90s)" : "Issue Found: Checkout Button Blocked"}
-                          </span>
-                          <span className="text-[11px] text-zinc-200 leading-normal wrap-break-word mt-0.5 font-medium">
-                            {isTimedOut
-                              ? "Worker session reached 90s timeout. Test halted to prevent hanging."
-                              : (selectedRun?.failure_reason ? selectedRun.failure_reason.split("\n")[0] : "Checkout button was disabled or unresponsive on cart page.")}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] uppercase font-mono px-3 py-1 rounded-full border border-white/20 bg-transparent text-rose-300 font-bold whitespace-nowrap flex-none">
-                        {isTimedOut ? "Timed Out" : "Step 6 Blocked"}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Card 4: AnimatedList of All Runs — Liquid Glass Card */}
+            {/* Card 4: AnimatedList of All Runs — Springlight Alabaster Card */}
             <LiquidGlassCard
-              glowColor="rgba(255, 255, 255, 0.15)"
-              className="p-5 flex flex-col gap-3 shadow-2xl"
+              glowColor="rgba(45, 74, 62, 0.15)"
+              className="p-5 flex flex-col gap-3 shadow-xl"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <div className="flex items-center justify-between border-b border-[#2d4a3e]/10 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-zinc-400" />
-                  <h3 className="text-sm font-semibold text-white">Recent Customer Tests</h3>
+                  <Clock className="w-4 h-4 text-[#2d4a3e]" />
+                  <h3 className="font-display text-xl font-normal text-[#2d4a3e]">Recent Customer Tests</h3>
                 </div>
-                <span className="text-[11px] text-zinc-400">{runs.length} checks recorded</span>
+                <span className="text-[11px] text-[#4e6357] font-medium">{runs.length} checks recorded</span>
               </div>
 
               {/* AnimatedList Component */}
@@ -1445,10 +1575,14 @@ export function ShipProofConsole() {
                 <AnimatedList
                   items={runListItems}
                   onItemSelect={(_, index) => {
-                    if (runs[index]) setSelectedRunId(runs[index].id);
+                    if (runs[index]) {
+                      setSelectedRunId(runs[index].id);
+                      setActiveTimerSec(0);
+                    }
                   }}
                   displayScrollbar={true}
                   frame={false}
+                  theme="light"
                   width="100%"
                   className="w-full"
                 />
@@ -1458,15 +1592,15 @@ export function ShipProofConsole() {
         </div>
       </main>
 
-      {/* Footer — Refractive Liquid Glass Footer */}
-      <footer className="w-full border-t border-white/12 bg-white/4 backdrop-blur-2xl py-3.5 px-6 mt-8 text-center text-xs text-zinc-400 flex flex-wrap items-center justify-between gap-2">
+      {/* Footer — Springlight Alabaster Glass Footer */}
+      <footer className="w-full border-t border-[#2d4a3e]/12 bg-white/80 backdrop-blur-2xl py-4 px-6 mt-8 text-center text-xs text-[#4e6357] flex flex-wrap items-center justify-between gap-2 shadow-[0_-4px_20px_rgba(35,55,45,0.03)]">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-200 font-medium">ShipProof</span>
+          <span className="font-display text-base font-normal text-[#2d4a3e]">ShipProof</span>
           <span>•</span>
           <span>24/7 AI Store Guardian &amp; Self-Healing Checkout</span>
         </div>
         <div>
-          <span>Your AI writes the code. ShipProof proves it works.</span>
+          <span className="font-medium">Your AI writes the code. ShipProof proves it works.</span>
         </div>
       </footer>
     </div>

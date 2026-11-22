@@ -13,7 +13,7 @@ export interface LiquidGlassCardProps extends React.HTMLAttributes<HTMLDivElemen
 export function LiquidGlassCard({
   children,
   className = '',
-  glowColor = 'rgba(255, 255, 255, 0.12)',
+  glowColor = 'rgba(45, 74, 62, 0.08)',
   intensity = 0.4,
   interactive = true,
   style,
@@ -53,21 +53,21 @@ export function LiquidGlassCard({
         }}
         {...rest}
       >
-        {/* Specular Liquid Rim Highlight (Matching Liquid Glass Spec) */}
+        {/* Specular Liquid Rim Highlight (Springlight Alabaster Spec) */}
         <div
           className="pointer-events-none absolute inset-0 rounded-[26px] z-0"
           style={{
             boxShadow:
-              'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4)',
+              'inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1.5px 2px 0 rgba(45, 74, 62, 0.04)',
           }}
         />
 
-        {/* Optical Refraction & Glass Displacement Backdrop — Clean Empty Liquid Glass with Zero Dark/Opaque Fills */}
+        {/* Optical Refraction & Glass Displacement Backdrop */}
         <div
           className="pointer-events-none absolute inset-0 -z-10 rounded-[26px]"
           style={{
             background:
-              'linear-gradient(-75deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04))',
+              'linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.78))',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             filter: 'url(#container-glass)',
@@ -86,13 +86,13 @@ export function LiquidGlassCard({
           />
         )}
 
-        {/* Content Layer — 100% Text Clarity, High-Contrast Visibility */}
-        <div className="relative z-10 w-full h-full text-zinc-100">
+        {/* Content Layer — High-Contrast Visibility in Springlight */}
+        <div className="relative z-10 w-full h-full text-[#1c2a22]">
           {children}
         </div>
       </div>
 
-      {/* Underlying Liquid Ambient Shadow (Matching Button Spec) */}
+      {/* Underlying Liquid Ambient Shadow */}
       <div
         className="liquid-button-shadow"
         aria-hidden="true"

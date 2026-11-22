@@ -3,16 +3,16 @@
 {% block content %}
 <div class="card" style="max-width: 640px; margin: 1.5rem auto; padding: 2.5rem;" id="checkout-form-container">
   <div class="card-content">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.25rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.25rem;">
       <div>
-        <h1 id="checkout-header" style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff;">
+        <h1 id="checkout-header" style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 400; letter-spacing: -0.015em; color: var(--primary); line-height: 1.1;">
           Secure Checkout
         </h1>
-        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">
+        <p style="font-size: 0.85rem; color: var(--foreground-muted); margin-top: 0.35rem;">
           Express Checkout &bull; 256-Bit SSL Encrypted &bull; Instant Order Placement
         </p>
       </div>
-      <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #34d399;">
+      <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(27, 122, 75, 0.1); border: 1px solid rgba(27, 122, 75, 0.25); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--success); box-shadow: 0 2px 6px rgba(35, 55, 45, 0.05);">
         ✓
       </div>
     </div>
@@ -42,15 +42,15 @@
       <!-- Order Total Summary Box -->
       <div class="order-summary-box">
         <div>
-          <span style="font-size: 0.82rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; display: block;">Total Due Now</span>
-          <span style="font-size: 0.75rem; color: #64748b;">Includes standard taxes &amp; shipping</span>
+          <span style="font-size: 0.82rem; text-transform: uppercase; color: var(--foreground-muted); font-weight: 600; display: block; letter-spacing: 0.03em;">Total Due Now</span>
+          <span style="font-size: 0.78rem; color: var(--foreground-muted);">Includes standard taxes &amp; shipping</span>
         </div>
-        <span style="font-size: 1.85rem; font-weight: 800; color: #34d399; letter-spacing: -0.02em;" id="checkout-total">
+        <span style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 400; color: var(--primary); letter-spacing: -0.01em;" id="checkout-total">
           ${{ "%.2f"|format(subtotal) }}
         </span>
       </div>
 
-      <button type="submit" class="btn btn-primary" id="place-order-btn" style="width: 100%; padding: 0.95rem; font-size: 1.05rem;">
+      <button type="submit" class="btn btn-primary" id="place-order-btn" style="width: 100%; padding: 1rem; font-size: 1.05rem; margin-top: 0.5rem;">
         <span>Place Order Now</span>
       </button>
     </form>

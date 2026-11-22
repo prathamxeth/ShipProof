@@ -1,3 +1,4 @@
+import os
 import asyncio
 import time
 from datetime import datetime, timezone
@@ -19,7 +20,7 @@ class RevenueGuardService:
     def __init__(self):
         self.enabled: bool = True
         self.interval_seconds: int = 120  # Default 2 minutes (favorable balance)
-        self.target_url: str = "http://127.0.0.1:3005"
+        self.target_url: str = os.getenv("STORE_TARGET_URL", "http://127.0.0.1:3005")
         self.objective: str = (
             "Click 'Add to Cart', in the cart click 'Proceed to Checkout', "
             "and on the checkout page click 'Place Order Now'."

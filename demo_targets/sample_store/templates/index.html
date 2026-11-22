@@ -22,7 +22,7 @@
       </div>
 
       <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <a href="/cart" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.92rem;">
+        <a href="/cart" class="btn btn-primary" style="padding: 0.8rem 1.6rem; font-size: 0.92rem;">
           <span>View Shopping Bag ({{ cart_count }})</span>
         </a>
       </div>
@@ -34,7 +34,7 @@
     <div class="catalog-section-head">
       <h2 class="catalog-section-title">
         <span>Featured Products</span>
-        <span class="badge" style="font-size: 0.65rem;">{{ products|length }} Items</span>
+        <span class="badge" style="font-size: 0.68rem;">{{ products|length }} Items</span>
       </h2>
       <span class="catalog-section-subtitle">Instant Add-to-Bag &amp; Live Checkout</span>
     </div>
@@ -49,8 +49,8 @@
             </div>
 
             <!-- Title & Link -->
-            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.01em;">
-              <a href="/product/{{ p.id }}" class="product-title-link" id="product-link-{{ p.id }}">
+            <h3 style="margin-bottom: 0.5rem;">
+              <a href="/product/{{ p.id }}" class="product-title-link" id="product-link-{{ p.id }}" style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; color: var(--primary); text-decoration: none;">
                 {{ p.name }}
               </a>
             </h3>
@@ -65,7 +65,7 @@
           <div class="card-content product-card-footer">
             <div>
               <span class="product-price-label">Price</span>
-              <span class="product-price-val">
+              <span class="product-price-val" style="font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; color: var(--primary);">
                 ${{ "%.2f"|format(p.price) }}
               </span>
             </div>

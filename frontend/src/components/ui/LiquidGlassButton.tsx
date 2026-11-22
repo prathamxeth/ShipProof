@@ -43,40 +43,39 @@ export const LiquidGlassButton = React.forwardRef<
       lg: 'text-sm py-2.5 px-5 min-h-[44px]',
     }[size];
 
-    // Variant colors: all variants use EMPTY liquid glass background with zero colored fills!
-    // The variant only tunes text color and focus ring.
+    // Variant colors: Springlight refined translucent buttons
     const variantConfig = {
       primary: {
-        text: 'text-white',
-        border: 'border-white/25',
-        bg: 'bg-transparent',
-        badgeBg: 'bg-white/[0.08] text-white border-white/25',
-        shadow: 'shadow-white/5',
-        focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
+        text: 'text-[#1c2a22]',
+        border: 'border-[#2d4a3e]/20',
+        bg: 'bg-white/85',
+        badgeBg: 'bg-[#2d4a3e]/10 text-[#2d4a3e] border-[#2d4a3e]/20',
+        shadow: 'shadow-[0_2px_8px_rgba(35,55,45,0.06)]',
+        focusRing: 'focus-visible:outline-[#2d4a3e] focus-visible:ring-[#2d4a3e]/30',
       },
       glass: {
-        text: 'text-zinc-100',
-        border: 'border-white/20',
-        bg: 'bg-transparent',
-        badgeBg: 'bg-white/[0.08] text-zinc-100 border-white/20',
-        shadow: 'shadow-white/5',
-        focusRing: 'focus-visible:outline-sky-400 focus-visible:ring-sky-400/40',
+        text: 'text-[#1c2a22]',
+        border: 'border-[#2d4a3e]/15',
+        bg: 'bg-white/75',
+        badgeBg: 'bg-[#2d4a3e]/10 text-[#2d4a3e] border-[#2d4a3e]/20',
+        shadow: 'shadow-[0_2px_8px_rgba(35,55,45,0.05)]',
+        focusRing: 'focus-visible:outline-[#2d4a3e] focus-visible:ring-[#2d4a3e]/30',
       },
       danger: {
-        text: 'text-rose-200',
-        border: 'border-white/20',
-        bg: 'bg-transparent',
-        badgeBg: 'bg-white/[0.08] text-rose-300 border-rose-400/30',
-        shadow: 'shadow-white/5',
-        focusRing: 'focus-visible:outline-rose-400 focus-visible:ring-rose-400/40',
+        text: 'text-[#d9383a]',
+        border: 'border-[#d9383a]/30',
+        bg: 'bg-[#d9383a]/10',
+        badgeBg: 'bg-[#d9383a]/15 text-[#d9383a] border-[#d9383a]/30',
+        shadow: 'shadow-[0_2px_8px_rgba(217,56,58,0.1)]',
+        focusRing: 'focus-visible:outline-[#d9383a] focus-visible:ring-[#d9383a]/30',
       },
       emerald: {
-        text: 'text-emerald-200',
-        border: 'border-white/20',
-        bg: 'bg-transparent',
-        badgeBg: 'bg-white/[0.08] text-emerald-300 border-emerald-400/30',
-        shadow: 'shadow-white/5',
-        focusRing: 'focus-visible:outline-emerald-400 focus-visible:ring-emerald-400/40',
+        text: 'text-[#1b7a4b]',
+        border: 'border-[#1b7a4b]/30',
+        bg: 'bg-[#1b7a4b]/12',
+        badgeBg: 'bg-[#1b7a4b]/15 text-[#1b7a4b] border-[#1b7a4b]/30',
+        shadow: 'shadow-[0_2px_8px_rgba(27,122,75,0.1)]',
+        focusRing: 'focus-visible:outline-[#1b7a4b] focus-visible:ring-[#1b7a4b]/30',
       },
     }[variant];
 
@@ -94,68 +93,57 @@ export const LiquidGlassButton = React.forwardRef<
           aria-busy={loading}
           className={`liquid-glass-btn relative box-border flex min-w-0 items-center justify-center font-medium font-sans select-none whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 ${variantConfig.focusRing} disabled:cursor-not-allowed disabled:pointer-events-none disabled:shadow-none disabled:opacity-50 cursor-pointer ${
             isActionTile ? 'rounded-2xl' : 'rounded-full'
-          } ${sizeClasses} ${variantConfig.text} ${variantConfig.bg} ${
+          } ${sizeClasses} ${variantConfig.text} ${variantConfig.bg} ${variantConfig.border} ${
             fullWidth ? 'w-full' : ''
           } ${className}`}
           style={{
-            transition:
-              'background-color 0.15s ease, transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.15s ease, filter 0.15s ease',
+            transformOrigin: 'center center',
           }}
           {...props}
         >
-          {/* Loading Spinner */}
-          {loading && (
-            <svg
-              className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-current"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+          {/* Action Tile Presentation with Dual Labels */}
+          {isActionTile ? (
+            <div className="flex items-center gap-2.5 w-full text-left py-0.5">
+              {icon && (
+                <div className="p-2 rounded-xl bg-[#2d4a3e]/8 border border-[#2d4a3e]/15 flex items-center justify-center flex-none">
+                  {icon}
+                </div>
+              )}
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-semibold text-xs tracking-tight truncate leading-tight">
+                  {children}
+                </span>
+                {sublabel && (
+                  <span className="text-[10px] text-[#4e6357] font-normal truncate mt-0.5 leading-none">
+                    {sublabel}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Standard Compact Button Presentation */
+            <div className="flex items-center gap-1.5 justify-center">
+              {badge && (
+                <span
+                  className={`text-[9.5px] uppercase font-mono px-1.5 py-0.2 rounded-full border ${variantConfig.badgeBg} font-semibold`}
+                >
+                  {badge}
+                </span>
+              )}
+              {icon && <span className="flex-none">{icon}</span>}
+              <span className="truncate">{children}</span>
+            </div>
           )}
-
-          {/* Badge or Icon Disc (as in Stepper action tile) */}
-          {!loading && (badge || icon) && (
-            <span
-              className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full text-[11.5px] leading-none font-semibold tabular-nums border ${variantConfig.badgeBg} mr-2`}
-              style={{
-                boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4)',
-                transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
-              }}
-            >
-              {badge || icon}
-            </span>
-          )}
-
-          {/* Label & Sublabel */}
-          <span className="flex min-w-0 flex-col text-left">
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap leading-tight tracking-tight flex items-center gap-1.5 font-semibold">
-              {children}
-            </span>
-            {sublabel && (
-              <span className="text-[10px] text-zinc-300 font-normal leading-none mt-0.5 whitespace-nowrap">
-                {sublabel}
-              </span>
-            )}
-          </span>
         </button>
 
-        {/* Soft Ambient Shadow */}
-        <div className="liquid-button-shadow" aria-hidden="true" />
+        {/* Ambient Under-Button Shadow */}
+        <div
+          className="liquid-button-shadow"
+          aria-hidden="true"
+          style={{
+            borderRadius: isActionTile ? '16px' : '9999px',
+          }}
+        />
       </div>
     );
   }

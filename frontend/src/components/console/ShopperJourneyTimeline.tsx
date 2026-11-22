@@ -46,17 +46,17 @@ export function ShopperJourneyTimeline({
   isStale = false,
 }: ShopperJourneyTimelineProps) {
   const isPassed = runStatus === "passed" || runStatus === "verified";
-  const isFailed = runStatus === "failed" || runStatus === "error" || runStatus === "incomplete" || runStatus === "timed_out" || isStale;
+  const isFailed = !isPassed && (runStatus === "failed" || runStatus === "error" || runStatus === "incomplete" || runStatus === "timed_out" || isStale);
 
   return (
-    <div className="w-full flex flex-col gap-3.5 p-4 rounded-2xl bg-transparent border border-white/12 shadow-none">
+    <div className="w-full flex flex-col gap-3.5 p-4 rounded-2xl bg-transparent border border-[#2d4a3e]/15 shadow-none">
       {/* 1. Header with Progress, Real Percentage & Elapsed Timer */}
-      <div className="flex flex-col gap-2 border-b border-white/10 pb-3">
+      <div className="flex flex-col gap-2 border-b border-[#2d4a3e]/10 pb-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-white tracking-tight flex items-center gap-1.5">
+            <span className="font-semibold text-[#1c2a22] tracking-tight flex items-center gap-1.5">
               <span>Customer Journey Progress</span>
-              <span className="text-[10px] text-zinc-300 font-medium">
+              <span className="text-[10px] text-[#4e6357] font-medium">
                 ({completedCount} of {totalCount} verified)
               </span>
             </span>
@@ -64,19 +64,19 @@ export function ShopperJourneyTimeline({
 
           <div className="flex items-center gap-3">
             {/* Live Elapsed Time */}
-            <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-200 font-semibold">
-              <Clock className="w-3 h-3 text-sky-400" />
+            <div className="flex items-center gap-1 text-[11px] font-mono text-[#1c2a22] font-semibold">
+              <Clock className="w-3 h-3 text-[#2d4a3e]" />
               <span>{elapsedSec.toFixed(1)}s</span>
             </div>
 
-            {/* Percentage Badge — Empty Liquid Glass */}
+            {/* Percentage Badge */}
             <span
-              className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-white/20 bg-transparent ${
+              className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
                 isPassed
-                  ? "text-emerald-300"
+                  ? "text-emerald-800 bg-emerald-50 border-emerald-200"
                   : isFailed
-                  ? "text-rose-300"
-                  : "text-sky-300"
+                  ? "text-rose-800 bg-rose-50 border-rose-200"
+                  : "text-sky-800 bg-sky-50 border-sky-200"
               }`}
             >
               {progressPercent}%
@@ -84,15 +84,15 @@ export function ShopperJourneyTimeline({
           </div>
         </div>
 
-        {/* Real Progress Bar — Transparent Track */}
-        <div className="w-full h-2 rounded-full bg-white/5 border border-white/15 overflow-hidden relative shadow-none">
+        {/* Real Progress Bar */}
+        <div className="w-full h-2 rounded-full bg-black/5 border border-[#2d4a3e]/15 overflow-hidden relative shadow-none">
           <div
             className={`h-full transition-all duration-300 ease-out rounded-full ${
               isPassed
-                ? "bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]"
+                ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 shadow-[0_0_8px_rgba(27,122,75,0.4)]"
                 : isFailed
-                ? "bg-gradient-to-r from-rose-500 via-rose-400 to-amber-400 shadow-[0_0_12px_rgba(244,63,94,0.6)]"
-                : "bg-gradient-to-r from-sky-400 via-blue-400 to-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.8)] animate-pulse"
+                ? "bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 shadow-[0_0_8px_rgba(217,56,58,0.4)]"
+                : "bg-gradient-to-r from-sky-600 via-blue-600 to-sky-500 shadow-[0_0_8px_rgba(14,116,144,0.4)] animate-pulse"
             }`}
             style={{ width: `${Math.max(progressPercent, 4)}%` }}
           />
@@ -111,29 +111,29 @@ export function ShopperJourneyTimeline({
               key={s.id}
               className={`flex items-center justify-between p-2 rounded-xl border transition-all text-xs ${
                 isCurrentRunning
-                  ? "bg-white/[0.06] border-white/20 shadow-sm"
+                  ? "bg-white/90 border-[#2d4a3e]/25 shadow-sm"
                   : isDone
-                  ? "bg-white/[0.03] border-white/10"
+                  ? "bg-white/75 border-[#2d4a3e]/12"
                   : isStepFailed
-                  ? "bg-white/[0.06] border-white/20 shadow-sm"
-                  : "bg-transparent border-transparent opacity-75"
+                  ? "bg-rose-50/90 border-rose-300 shadow-sm"
+                  : "bg-white/40 border-transparent opacity-75"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 {/* State Indicator Glyph */}
                 <div className="flex-none">
                   {isDone ? (
-                    <div className="w-4 h-4 rounded-full bg-white/8 border border-white/20 flex items-center justify-center text-emerald-400 shadow-sm">
+                    <div className="w-4 h-4 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-sm">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
                   ) : isCurrentRunning ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
+                    <div className="w-4 h-4 rounded-full border-2 border-sky-400/30 border-t-sky-600 animate-spin" />
                   ) : isStepFailed ? (
-                    <div className="w-4 h-4 rounded-full bg-white/8 border border-white/20 flex items-center justify-center text-rose-400 shadow-sm">
+                    <div className="w-4 h-4 rounded-full bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 shadow-sm">
                       <AlertTriangle className="w-3.5 h-3.5" />
                     </div>
                   ) : (
-                    <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-mono text-zinc-300 font-semibold">
+                    <div className="w-4 h-4 rounded-full border border-[#2d4a3e]/20 flex items-center justify-center text-[10px] font-mono text-[#4e6357] font-semibold bg-white/50">
                       {s.id}
                     </div>
                   )}
@@ -144,33 +144,33 @@ export function ShopperJourneyTimeline({
                   <span
                     className={`font-semibold truncate ${
                       isDone
-                        ? "text-zinc-100"
+                        ? "text-[#1c2a22]"
                         : isCurrentRunning
-                        ? "text-white"
+                        ? "text-[#1c2a22]"
                         : isStepFailed
-                        ? "text-rose-200"
-                        : "text-zinc-300"
+                        ? "text-rose-900"
+                        : "text-[#4e6357]"
                     }`}
                   >
                     {s.title}
                   </span>
-                  <span className="text-[10.5px] text-zinc-300 font-normal truncate hidden sm:inline">
+                  <span className="text-[10.5px] text-[#4e6357] font-normal truncate hidden sm:inline">
                     {s.sublabel}
                   </span>
                 </div>
               </div>
 
-              {/* Status Pill & Target — Empty Liquid Glass */}
+              {/* Status Pill & Target */}
               <div className="flex items-center gap-2 flex-none ml-2">
                 <span
-                  className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border border-white/20 bg-transparent ${
+                  className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
                     isDone
-                      ? "text-zinc-200"
+                      ? "text-[#2d4a3e] bg-white/80 border-[#2d4a3e]/15"
                       : isCurrentRunning
-                      ? "text-sky-200 animate-pulse"
+                      ? "text-sky-700 bg-sky-50 border-sky-200 animate-pulse"
                       : isStepFailed
-                      ? "text-rose-200"
-                      : "text-zinc-300"
+                      ? "text-rose-700 bg-rose-50 border-rose-200"
+                      : "text-[#4e6357] bg-white/50 border-[#2d4a3e]/10"
                   }`}
                 >
                   {s.state === "COMPLETED"
@@ -189,12 +189,17 @@ export function ShopperJourneyTimeline({
         })}
       </div>
 
-      {/* 3. Stale Session Watchdog Alert */}
-      {isStale && (
-        <div className="w-full p-3 rounded-xl bg-transparent border border-amber-400/40 flex items-center justify-between text-xs text-amber-200 shadow-none">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-none" />
-            <span className="font-semibold">Worker session reached 90s timeout. Test halted to prevent hanging.</span>
+      {/* 3. Authoritative Single Timeout / Failure Callout */}
+      {!isPassed && (isStale || runStatus === "timed_out") ? (
+        <div className="w-full p-3 rounded-xl bg-amber-50/90 border border-amber-300 flex items-center justify-between text-xs text-amber-900 shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-none" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-amber-950">Execution Timed Out ({elapsedSec.toFixed(1)}s)</span>
+              <span className="text-[11px] text-amber-900 truncate">
+                {completedCount} of {totalCount} steps completed before worker session stopped.
+              </span>
+            </div>
           </div>
           {onRetry && (
             <LiquidGlassButton variant="primary" size="sm" onClick={onRetry} className="flex-none ml-2">
@@ -203,16 +208,16 @@ export function ShopperJourneyTimeline({
             </LiquidGlassButton>
           )}
         </div>
-      )}
-
-      {/* 4. Failure Detail Callout */}
-      {isFailed && failureReason && !isStale && (
-        <div className="w-full p-3 rounded-xl bg-transparent border border-rose-400/35 text-xs text-rose-200 flex items-center justify-between shadow-none">
-          <div className="flex items-center gap-2 min-w-0">
-            <AlertTriangle className="w-4 h-4 text-rose-400 flex-none" />
-            <span className="truncate font-semibold">
-              Obstruction: {failureReason.split("\n")[0]}
-            </span>
+      ) : !isPassed && isFailed && failureReason ? (
+        <div className="w-full p-3 rounded-xl bg-rose-50/90 border border-rose-300 text-xs text-rose-900 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-none" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-rose-950">Customer Journey Obstructed</span>
+              <span className="text-[11px] text-rose-900 truncate">
+                {failureReason.split("\n")[0]}
+              </span>
+            </div>
           </div>
           {onRetry && (
             <LiquidGlassButton
@@ -225,7 +230,7 @@ export function ShopperJourneyTimeline({
             </LiquidGlassButton>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

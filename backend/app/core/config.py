@@ -59,10 +59,16 @@ class Settings(BaseModel):
     ALLOW_LOCAL_TARGETS: bool = Field(
         default=os.getenv("ALLOW_LOCAL_TARGETS", "true").lower() == "true"
     )
-    CORS_ORIGINS: list[str] = Field(default=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ])
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: [
+            o.strip()
+            for o in os.getenv(
+                "CORS_ORIGINS",
+                "http://localhost:3000,http://127.0.0.1:3000",
+            ).split(",")
+            if o.strip()
+        ]
+    )
     TRUSTED_PROXIES: list[str] = Field(default=["127.0.0.1", "::1"])
     MAX_CONCURRENT_RUNS: int = Field(default=int(os.getenv("MAX_CONCURRENT_RUNS", "2")))
     

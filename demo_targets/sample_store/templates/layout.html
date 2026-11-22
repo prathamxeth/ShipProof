@@ -1,32 +1,37 @@
-<!-- Hallmark · macrostructure: E-Commerce Store · theme: Dark Liquid Glass · contrast: pass (40–41) · mobile: pass (34, 49, 50–57) -->
+<!-- Hallmark · macrostructure: E-Commerce Store · theme: Springlight · typography: Instrument Serif + Inter -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title or "ShipProof Demo Store" }}</title>
+  <title>{{ title or "Acme Voyager Store — Springlight Edition" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #100e17;
-      --card-bg: rgba(11, 13, 22, 0.65);
-      --border: rgba(255, 255, 255, 0.14);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --text: #f4f4f7;
-      --text-muted: #94a3b8;
-      --primary: #1863dc;
-      --primary-hover: #2563eb;
-      --success: #10b981;
-      --danger: #ef4444;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-image: url('/static/images/shipproof-spring-bg.jpeg');
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --foreground: #1c2a22;
+      --foreground-muted: #4e6357;
+      --card-bg: rgba(255, 255, 255, 0.84);
+      --card-border: rgba(255, 255, 255, 0.9);
+      --border-subtle: rgba(45, 74, 62, 0.12);
+      --primary: #2d4a3e;
+      --primary-hover: #1f352c;
+      --accent-rose: #d9748b;
+      --success: #1b7a4b;
+      --danger: #d9383a;
+      --radius: 20px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       overflow-x: clip;
-      font-family: var(--font-sans);
-      background-color: var(--bg);
-      color: var(--text);
+      font-family: var(--font-body);
+      color: var(--foreground);
       line-height: 1.5;
       min-height: 100vh;
       display: flex;
@@ -34,55 +39,43 @@
       position: relative;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
+      background-color: #f7f5ef;
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    /* Ambient atmospheric tint veil for optimal text contrast */
+    .ambient-spring-veil {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.25), transparent 70%),
+                  linear-gradient(to bottom, rgba(247, 245, 239, 0.35) 0%, rgba(247, 245, 239, 0.15) 50%, rgba(247, 245, 239, 0.45) 100%);
     }
 
     :focus-visible {
-      outline: 2px solid #38bdf8;
+      outline: 1.5px solid rgba(45, 74, 62, 0.6);
       outline-offset: 2px;
       transition: none !important;
     }
 
-    /* Background Holo Canvas */
-    #holo-container {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      pointer-events: auto;
-      background-color: #100e17;
-      overflow: hidden;
-    }
-
-    #holo-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    /* Ambient Vignette Overlay */
-    .holo-vignette {
-      position: fixed;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      background: radial-gradient(circle at 50% 30%, transparent 20%, rgba(9, 10, 15, 0.5) 80%),
-                  linear-gradient(to bottom, rgba(9, 10, 15, 0.3), transparent 40%, rgba(9, 10, 15, 0.7));
-    }
-
-    /* Top Navigation — Frosted Glassmorphism Header */
+    /* Top Navigation — Springlight Editorial Header */
     header {
       position: relative;
       z-index: 20;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(255, 255, 255, 0.82);
       border-bottom: 1px solid var(--border-subtle);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      padding: 0.9rem 2rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 1rem 2.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 20px rgba(35, 55, 45, 0.05);
     }
 
     .brand-wrap {
@@ -94,15 +87,16 @@
     }
 
     .brand-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #1863dc, #2563eb, #38bdf8);
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2d4a3e, #426b5a);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.15rem;
-      box-shadow: 0 4px 14px rgba(24, 99, 220, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      font-size: 1.2rem;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(45, 74, 62, 0.25);
     }
 
     .brand-text-block {
@@ -111,60 +105,70 @@
     }
 
     .brand-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--primary);
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      line-height: 1.1;
     }
 
     .brand-subtitle {
+      font-family: var(--font-body);
       font-size: 0.72rem;
-      color: #94a3b8;
+      color: var(--foreground-muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-top: 2px;
     }
 
     .nav-links {
       display: flex;
-      gap: 0.75rem;
+      gap: 0.85rem;
       align-items: center;
     }
 
-    /* Badges */
+    /* Springlight Badges */
     .badge {
-      font-size: 0.68rem;
-      padding: 0.2rem 0.55rem;
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 9999px;
       font-weight: 600;
       letter-spacing: 0.02em;
       text-transform: uppercase;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(45, 74, 62, 0.18);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--primary);
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
+      gap: 0.4rem;
+      box-shadow: 0 1px 3px rgba(35, 55, 45, 0.05);
     }
 
     .badge-live {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(27, 122, 75, 0.1);
+      color: var(--success);
+      border-color: rgba(27, 122, 75, 0.25);
     }
 
     .badge-live-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
+      background: var(--success);
+      box-shadow: 0 0 6px rgba(27, 122, 75, 0.6);
       animation: pulseDot 2s infinite;
     }
 
     .badge-defect {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(217, 56, 58, 0.12);
+      color: var(--danger);
+      border-color: rgba(217, 56, 58, 0.3);
       animation: pulseAlert 1.5s infinite;
     }
 
@@ -182,60 +186,25 @@
     .container {
       position: relative;
       z-index: 10;
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 2.5rem auto;
       padding: 0 1.5rem;
       flex: 1;
       width: 100%;
     }
 
-    /* Liquid Glass Cards */
-    .card, .liquid-glass-card {
+    /* Springlight Alabaster Cards */
+    .card {
       position: relative;
-      border-radius: 26px;
-      isolation: isolate;
-      background: linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.05),
-        rgba(255, 255, 255, 0.14),
-        rgba(255, 255, 255, 0.04)
-      ), rgba(11, 13, 22, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow:
-        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45),
-        inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4),
-        0 16px 36px -12px rgba(0, 0, 0, 0.6),
-        inset 0 0 16px rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      padding: 1.75rem;
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 12px 32px -8px rgba(35, 55, 45, 0.08), 0 2px 6px rgba(35, 55, 45, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 2rem;
       overflow: hidden;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      overflow: hidden;
-      border-radius: 26px;
-      box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.6), inset 0 0 3px 1px rgba(255, 255, 255, 0.3);
-      pointer-events: none;
-    }
-
-    .card::after {
-      content: '';
-      position: absolute;
-      z-index: -1;
-      inset: 0;
-      border-radius: 26px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      filter: url(#container-glass);
-      overflow: hidden;
-      isolation: isolate;
-      pointer-events: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .card-content {
@@ -244,515 +213,340 @@
     }
 
     .card:hover {
-      box-shadow:
-        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.55),
-        inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.4),
-        0 24px 48px -12px rgba(24, 99, 220, 0.2),
-        inset 0 0 20px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 16px 40px -10px rgba(35, 55, 45, 0.12), 0 2px 8px rgba(35, 55, 45, 0.04);
+    }
+
+    /* Hero Banner */
+    .store-hero-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 252, 247, 0.82) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 16px 48px -12px rgba(35, 55, 45, 0.1);
+      padding: 2.5rem;
+    }
+
+    .store-hero-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .store-hero-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .store-hero-title {
+      font-family: var(--font-display);
+      font-size: 2.85rem;
+      font-weight: 400;
+      color: var(--primary);
+      letter-spacing: -0.015em;
+      line-height: 1.08;
+      margin: 0.6rem 0;
+    }
+
+    .store-hero-desc {
+      font-size: 1.05rem;
+      color: var(--foreground-muted);
+      max-width: 680px;
+      line-height: 1.6;
+    }
+
+    /* Catalog Section Header */
+    .catalog-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .catalog-section-title {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--primary);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .catalog-section-subtitle {
+      font-size: 0.85rem;
+      color: var(--foreground-muted);
+      font-weight: 500;
     }
 
     /* Grid layout */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 1.75rem;
     }
 
-    /* Liquid Glass Buttons */
-    .btn, .liquid-glass-btn {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.35rem;
-      font-size: 0.88rem;
-      font-weight: 600;
-      font-family: inherit;
-      border-radius: 9999px;
-      text-decoration: none;
-      cursor: pointer;
-      select: none;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #ffffff;
-      background: linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.08),
-        rgba(255, 255, 255, 0.22),
-        rgba(255, 255, 255, 0.08)
-      );
-      box-shadow:
-        inset 0 0.125em 0.125em rgba(0, 0, 0, 0.15),
-        inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.5),
-        0 0.25em 0.125em -0.125em rgba(0, 0, 0, 0.3),
-        0 0 0.1em 0.25em inset rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-    }
-
-    .btn:hover, .liquid-glass-btn:hover {
-      transform: scale(0.985);
-      filter: brightness(1.1);
-      box-shadow:
-        inset 0 0.125em 0.125em rgba(0, 0, 0, 0.1),
-        inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.65),
-        0 0.15em 0.05em -0.1em rgba(0, 0, 0, 0.35),
-        0 0 0.05em 0.1em inset rgba(255, 255, 255, 0.4);
-    }
-
-    .btn:active, .liquid-glass-btn:active {
-      transform: scale(0.965);
-      filter: brightness(0.95);
-    }
-
-    /* Primary Liquid Button — Empty Liquid Glass with Zero Colored Fills */
-    .btn-primary {
-      background: linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.08),
-        rgba(255, 255, 255, 0.22),
-        rgba(255, 255, 255, 0.08)
-      );
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      box-shadow:
-        inset 0 0.125em 0.125em rgba(0, 0, 0, 0.15),
-        inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.5),
-        0 0.25em 0.125em -0.125em rgba(0, 0, 0, 0.3),
-        0 0 0.1em 0.25em inset rgba(255, 255, 255, 0.15);
-      color: #ffffff;
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.12),
-        rgba(255, 255, 255, 0.28),
-        rgba(255, 255, 255, 0.12)
-      );
-      box-shadow:
-        inset 0 0.125em 0.125em rgba(0, 0, 0, 0.1),
-        inset 0 -0.125em 0.125em rgba(255, 255, 255, 0.65),
-        0 0.15em 0.05em -0.1em rgba(0, 0, 0, 0.35),
-        0 0 0.05em 0.1em inset rgba(255, 255, 255, 0.4);
-    }
-
-    /* Nav Pill Buttons */
-    .nav-btn {
-      padding: 0.45rem 1rem;
-      font-size: 0.82rem;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #e2e8f0;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    }
-
-    .nav-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    /* Ambient Shadow Spec */
-    .liquid-button-wrap {
-      position: relative;
-      display: inline-block;
-    }
-    .liquid-button-shadow {
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.5);
-      z-index: -1;
-      pointer-events: none;
-    }
-
-    /* Semantic Store Classes (Hallmark Token Architecture) */
-    .store-hero-card {
-      padding: 2.25rem 2.5rem;
-      background: linear-gradient(
-        -75deg,
-        rgba(255, 255, 255, 0.05),
-        rgba(255, 255, 255, 0.14),
-        rgba(255, 255, 255, 0.04)
-      ), rgba(11, 13, 22, 0.65);
-    }
-    .store-hero-content {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-    }
-    .store-hero-text {
-      max-width: 600px;
-    }
-    .store-hero-badge-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    .store-hero-title {
-      font-size: 2.1rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: #ffffff;
-      line-height: 1.2;
-      margin-bottom: 0.6rem;
-    }
-    .store-hero-desc {
-      color: #94a3b8;
-      font-size: 0.95rem;
-      line-height: 1.6;
-    }
-    .catalog-section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.25rem;
-      padding: 0 0.25rem;
-    }
-    .catalog-section-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .catalog-section-subtitle {
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
+    /* Product Card */
     .product-card {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      padding: 1.75rem;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: var(--radius);
     }
+
     .product-icon-wrap {
-      width: 56px;
-      height: 56px;
+      width: 60px;
+      height: 60px;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(45, 74, 62, 0.05);
+      border: 1px solid rgba(45, 74, 62, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
+      font-size: 2.2rem;
       margin-bottom: 1.25rem;
-      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
     }
+
     .product-title-link {
-      color: #ffffff;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--foreground);
       text-decoration: none;
       transition: color 0.15s ease;
+      line-height: 1.2;
     }
+
     .product-title-link:hover {
-      color: #38bdf8;
+      color: var(--primary);
     }
+
     .product-desc {
-      color: #94a3b8;
-      font-size: 0.88rem;
-      line-height: 1.5;
+      font-size: 0.9rem;
+      color: var(--foreground-muted);
+      line-height: 1.55;
+      margin-top: 0.5rem;
       margin-bottom: 1.5rem;
     }
+
     .product-card-footer {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 1.25rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-subtle);
     }
+
     .product-price-label {
-      display: block;
       font-size: 0.72rem;
       text-transform: uppercase;
-      color: #94a3b8;
+      color: var(--foreground-muted);
       font-weight: 600;
+      letter-spacing: 0.04em;
+      display: block;
     }
+
     .product-price-val {
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: #34d399;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
       letter-spacing: -0.02em;
     }
 
-    /* Cart & Checkout Semantic Classes */
-    .cart-summary-banner {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
+    /* Buttons */
+    .btn {
+      position: relative;
+      display: inline-flex;
       align-items: center;
-      gap: 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(0, 0, 0, 0.25);
-      margin: 0 -2.25rem -2.25rem -2.25rem;
-      padding: 1.75rem 2.25rem;
-      border-bottom-left-radius: 26px;
-      border-bottom-right-radius: 26px;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.4rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      border-radius: 9999px;
+      text-decoration: none;
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
     }
-    .form-group {
-      margin-bottom: 1.35rem;
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(45, 74, 62, 0.25);
     }
-    .form-label {
-      display: block;
-      margin-bottom: 0.5rem;
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(45, 74, 62, 0.35);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--foreground);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: #ffffff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-disabled {
+      background: rgba(200, 205, 202, 0.6) !important;
+      color: rgba(90, 100, 95, 0.7) !important;
+      cursor: not-allowed !important;
+      border: 1px solid rgba(180, 185, 182, 0.5) !important;
+      box-shadow: none !important;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1rem;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #e2e8f0;
+      color: var(--primary);
+      background: rgba(45, 74, 62, 0.06);
+      border: 1px solid rgba(45, 74, 62, 0.15);
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: all 0.15s ease;
     }
-    .order-summary-box {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 1.25rem;
-      border-radius: 16px;
-      margin-bottom: 2rem;
+
+    .nav-btn:hover {
+      background: rgba(45, 74, 62, 0.12);
+      color: var(--primary-hover);
+    }
+
+    /* Cart Summary Banner */
+    .cart-summary-banner {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 1.5rem;
+      background: rgba(45, 74, 62, 0.04);
+      border: 1px solid rgba(45, 74, 62, 0.12);
+      border-radius: 16px;
+      margin-top: 1rem;
     }
 
-    /* Disabled / Broken Button */
-    .btn-disabled, button:disabled {
-      opacity: 0.45 !important;
-      cursor: not-allowed !important;
-      background: rgba(255, 255, 255, 0.05) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      color: #94a3b8 !important;
-      box-shadow: none !important;
-      transform: none !important;
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 1.25rem;
     }
 
-    /* Form Inputs — Translucent Glass Styling */
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--foreground-muted);
+      margin-bottom: 0.5rem;
+    }
+
     input[type="text"], input[type="email"], input[type="number"] {
       width: 100%;
       padding: 0.75rem 1rem;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
-      color: #f4f4f7;
-      font-size: 0.92rem;
+      border: 1px solid rgba(45, 74, 62, 0.2);
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--foreground);
+      font-size: 0.95rem;
       font-family: inherit;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      outline: none;
+      transition: border-color 0.15s ease;
     }
 
-    input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus {
-      outline: none;
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
-      background: rgba(0, 0, 0, 0.5);
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(45, 74, 62, 0.12);
+    }
+
+    .order-summary-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem;
+      background: rgba(45, 74, 62, 0.05);
+      border: 1px solid rgba(45, 74, 62, 0.12);
+      border-radius: 14px;
+      margin-bottom: 1.75rem;
     }
 
     /* Footer */
     footer {
       position: relative;
       z-index: 20;
+      background: rgba(255, 255, 255, 0.85);
       border-top: 1px solid var(--border-subtle);
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      padding: 1.25rem 2rem;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 0.8rem;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      color: var(--foreground-muted);
+      margin-top: auto;
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 0.75rem 1.25rem; }
+      .container { padding: 0 1rem; margin: 1.5rem auto; }
+      .store-hero-card { padding: 1.5rem; }
+      .store-hero-title { font-size: 2.2rem; }
     }
   </style>
 </head>
 <body>
-  <!-- SVG Liquid Refraction Filters -->
-  <svg style="position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: -100;" aria-hidden="true">
-    <defs>
-      <filter id="container-glass" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.035 0.035" numOctaves="1" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-      <filter id="btn-glass" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.045" numOctaves="1" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </defs>
-  </svg>
+  <!-- Ambient Atmospheric Veil -->
+  <div class="ambient-spring-veil" aria-hidden="true"></div>
 
-  <!-- Holo Background Canvas -->
-  <div id="holo-container">
-    <canvas id="holo-canvas"></canvas>
-  </div>
-  <div class="holo-vignette" aria-hidden="true"></div>
-
-  <!-- Top Navigation -->
+  <!-- Top Navigation Header -->
   <header>
-    <a href="/" class="brand-wrap" id="store-brand">
-      <div class="brand-icon">👟</div>
+    <a href="/" class="brand-wrap">
+      <div class="brand-icon">🌿</div>
       <div class="brand-text-block">
-        <div class="brand-title">
-          <span>Acme Voyager Store</span>
-          {% if defect_enabled %}
-            <span class="badge badge-defect" id="defect-indicator">DEFECT ACTIVE</span>
-          {% else %}
-            <span class="badge badge-live" id="live-indicator">
-              <span class="badge-live-dot"></span>
-              24/7 Monitored
-            </span>
-          {% endif %}
-        </div>
-        <span class="brand-subtitle">Autonomous Verification Sandbox (:3005)</span>
+        <span class="brand-title">Acme Voyager</span>
+        <span class="brand-subtitle">Springlight Performance Gear</span>
       </div>
     </a>
 
-    <nav class="nav-links">
-      <a href="/" id="nav-products" class="nav-btn">
-        <span>Products</span>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">
+        <span>Catalog</span>
       </a>
-      <a href="/cart" id="nav-cart" class="nav-btn">
-        <span>Cart</span>
-        <span class="badge badge-live" style="margin-left: 0.2rem; padding: 0.1rem 0.45rem;" id="cart-count">{{ cart_count }}</span>
+      <a href="/cart" class="nav-btn" id="nav-cart-btn">
+        <span>Shopping Bag</span>
+        <span class="badge" style="background: var(--primary); color: #fff; border: none; padding: 0.15rem 0.45rem;">{{ cart_count }}</span>
       </a>
-      <a href="http://localhost:3000" target="_blank" class="nav-btn" style="border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
-        <span>AI Guardian Console ↗</span>
-      </a>
-    </nav>
+    </div>
   </header>
 
-  <!-- Page Content -->
+  <!-- Main Content Viewport -->
   <main class="container">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Footer -->
+  <!-- Editorial Footer -->
   <footer>
-    <p>Acme Voyager Store &bull; ShipProof Autonomous Customer Simulation Target &bull; Port :3005</p>
+    <div>
+      <strong style="color: var(--primary);">Acme Voyager Store</strong> &bull; Monitored 24/7 by ShipProof Autonomous AI Guardian
+    </div>
+    <div>
+      <span>Real E-Commerce Closed-Loop Testing Sandbox</span>
+    </div>
   </footer>
-
-  <!-- Interactive HoloMosaic WebGL Canvas Background Script -->
-  <script>
-    (function initHoloMosaic() {
-      const canvas = document.getElementById('holo-canvas');
-      if (!canvas) return;
-      const gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false });
-      if (!gl) {
-        // Fallback for older renderers: set CSS subtle gradient
-        canvas.style.background = 'radial-gradient(circle at 50% 40%, #1e1a2e 0%, #100e17 80%)';
-        return;
-      }
-
-      const VS = `#version 300 es
-      void main() {
-        vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
-        gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
-      }`;
-
-      const FS = `#version 300 es
-      precision highp float;
-      uniform vec2 uRes;
-      uniform float uTime;
-      uniform vec2 uMouse;
-      out vec4 outColor;
-
-      float h21(vec2 p) {
-        vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
-        q += dot(q, q.yzx + 33.33);
-        return fract((q.x + q.y) * q.z);
-      }
-
-      vec3 spectral(float w) {
-        float x = clamp((w - 400.0) / 300.0, 0.0, 1.0);
-        vec3 c1 = vec3(3.545, 2.932, 2.415);
-        vec3 x1 = vec3(0.695, 0.492, 0.276);
-        vec3 y1 = vec3(0.023, 0.152, 0.526);
-        vec3 c2 = vec3(3.903, 3.211, 3.965);
-        vec3 x2 = vec3(0.117, 0.867, 0.660);
-        vec3 y2 = vec3(0.848, 0.884, 0.739);
-        vec3 diff1 = c1 * (x - x1);
-        vec3 diff2 = c2 * (x - x2);
-        return clamp(1.0 - diff1 * diff1 - y1, 0.0, 1.0) + clamp(1.0 - diff2 * diff2 - y2, 0.0, 1.0);
-      }
-
-      void main() {
-        vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-        float tileSize = 0.055;
-        vec2 id = floor(uv / tileSize);
-        vec2 f = fract(uv / tileSize) - 0.5;
-
-        float rnd = h21(id);
-        float distToMouse = length(uv - uMouse);
-        float mouseWave = sin(distToMouse * 18.0 - uTime * 4.0) * exp(-distToMouse * 3.5);
-
-        float angle = uTime * 0.4 + rnd * 6.28 + mouseWave * 1.5;
-        float ripple = sin(uv.x * 4.0 + uv.y * 3.0 + uTime * 0.8);
-        float specWave = 400.0 + 300.0 * (0.5 + 0.5 * sin(angle + ripple));
-        vec3 rainbow = spectral(specWave);
-
-        // Seams and rounded bevel
-        vec2 d = abs(f) - 0.42;
-        float seam = 1.0 - smoothstep(0.0, 0.08, max(d.x, d.y));
-
-        vec3 baseMetal = vec3(0.12, 0.11, 0.16);
-        vec3 tileColor = mix(baseMetal, rainbow, 0.35 + 0.25 * sin(uTime * 0.5 + rnd * 3.0));
-
-        // Specular glint
-        float glint = pow(max(0.0, dot(normalize(vec3(f, 0.5)), normalize(vec3(0.3, 0.4, 0.8)))), 12.0);
-        tileColor += glint * 0.4;
-
-        vec3 col = tileColor * seam;
-        outColor = vec4(col, 1.0);
-      }`;
-
-      function createShader(type, src) {
-        const s = gl.createShader(type);
-        gl.shaderSource(s, src);
-        gl.compileShader(s);
-        return s;
-      }
-
-      const program = gl.createProgram();
-      gl.attachShader(program, createShader(gl.VERTEX_SHADER, VS));
-      gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, FS));
-      gl.linkProgram(program);
-
-      const uRes = gl.getUniformLocation(program, 'uRes');
-      const uTime = gl.getUniformLocation(program, 'uTime');
-      const uMouse = gl.getUniformLocation(program, 'uMouse');
-      const vao = gl.createVertexArray();
-
-      let mouse = { x: 0, y: 0 };
-      window.addEventListener('mousemove', (e) => {
-        mouse.x = (e.clientX - canvas.width * 0.5) / canvas.height;
-        mouse.y = -(e.clientY - canvas.height * 0.5) / canvas.height;
-      });
-
-      function resize() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        if (canvas.width !== w || canvas.height !== h) {
-          canvas.width = w;
-          canvas.height = h;
-          gl.viewport(0, 0, w, h);
-        }
-      }
-      window.addEventListener('resize', resize);
-      resize();
-
-      let startTime = performance.now();
-      function render() {
-        resize();
-        const t = (performance.now() - startTime) * 0.001;
-        gl.useProgram(program);
-        gl.bindVertexArray(vao);
-        gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, t);
-        gl.uniform2f(uMouse, mouse.x, mouse.y);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-        requestAnimationFrame(render);
-      }
-      requestAnimationFrame(render);
-    })();
-  </script>
 </body>
 </html>
