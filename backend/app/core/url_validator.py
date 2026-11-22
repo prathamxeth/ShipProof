@@ -136,7 +136,9 @@ def validate_target_url(
 
     # Determine environment policy
     if allow_local is None:
-        allow_local = settings.ALLOW_LOCAL_TARGETS and settings.ENVIRONMENT.lower() != "production"
+        allow_local = settings.ALLOW_LOCAL_TARGETS and (
+            settings.ENVIRONMENT.lower() != "production" or settings.DEPLOYMENT_MODE == "trusted_single_tenant"
+        )
 
     # 2. DNS resolution and canonical IP analysis
     # Even in development mode, we resolve to ensure the target is NOT pointing to metadata

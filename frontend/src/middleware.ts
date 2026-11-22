@@ -59,20 +59,27 @@ async function verifyToken(tokenString?: string | null): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Always allow Next.js static assets, images, background and favicon
+  // Always allow Next.js static assets, images, background, favicon, and demo store routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/images") ||
     pathname === "/background.jpg" ||
+    pathname.startsWith("/store") ||
+    pathname.startsWith("/cart") ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/order-confirmation") ||
+    pathname.startsWith("/product") ||
+    pathname.startsWith("/static") ||
     /\.(jpe?g|png|svg|webp|ico|gif)$/i.test(pathname)
   ) {
     return NextResponse.next();
   }
 
-  // Allow BFF auth endpoints and public health check without session check
+  // Allow BFF auth endpoints, public health check, and diagnostic endpoint without session check
   if (
     pathname === "/api/health" ||
+    pathname === "/api/diag" ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/session")
   ) {

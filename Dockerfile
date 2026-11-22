@@ -6,9 +6,11 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=10000 \
     KANE_CLI_PATH="/usr/local/bin/kane-cli" \
     ENVIRONMENT="production" \
+    DEPLOYMENT_MODE="trusted_single_tenant" \
     ALLOW_LOCAL_TARGETS="true" \
     WORKER_EXECUTION_MODE="subprocess" \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    PYTHONPATH="/app"
 
 # 1. Install system utilities, curl, gnupg, git, and Chromium runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
