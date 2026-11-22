@@ -530,11 +530,19 @@ class KaneService:
                 ))
                 await asyncio.sleep(0.4)
 
-                # Check if defect is present on cart page (button disabled or broken ID)
+                # Check if defect is present on cart page (button disabled, broken ID, or store defect active)
+                store_defect = False
+                try:
+                    r_def = await client.get("/api/defect")
+                    if r_def.status_code == 200:
+                        store_defect = bool(r_def.json().get("defect_enabled"))
+                except Exception:
+                    pass
+
                 is_defect = (
-                    "checkout-btn-broken" in cart_html
+                    store_defect
+                    or "checkout-btn-broken" in cart_html
                     or "btn-disabled" in cart_html
-                    or ('disabled' in cart_html.lower() and "proceed to checkout" in cart_html.lower())
                     or "checkout button disabled by defect" in cart_html.lower()
                 )
 
@@ -625,6 +633,6 @@ class KaneService:
             raw_stderr_path=str(raw_stderr_path),
             events=events,
             run_end_event=run_end_event,
-            stderr_hint=stderr_hint,
+            stderr_hint=None,
             error_message=failure_reason
         )

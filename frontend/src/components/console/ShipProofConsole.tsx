@@ -619,11 +619,23 @@ export function ShipProofConsole() {
     ];
 
     const backendSteps = currentRun?.steps || [];
+    const failedStep = backendSteps.find((b) => b.status === "failed");
+    const failedStepIndex = failedStep ? failedStep.step_index : (isRunFailed ? 6 : null);
 
     return rawSteps.map((s) => {
       let state: StepState = "PENDING";
       let duration: string | undefined;
       let error: string | undefined;
+
+      // If a previous step failed, subsequent steps were never executed and must remain PENDING
+      if (failedStepIndex !== null && s.id > failedStepIndex) {
+        return {
+          ...s,
+          state: "PENDING" as StepState,
+          duration: undefined,
+          error: undefined,
+        };
+      }
 
       const match = backendSteps.find((b) =>
         b.step_index === s.id ||
@@ -649,23 +661,17 @@ export function ShipProofConsole() {
           state = "RUNNING";
         }
       } else if (isRunFailed) {
-        if (defectActive) {
-          if (s.id <= 5) {
-            state = "COMPLETED";
-            duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
-          } else if (s.id === 6) {
-            state = isStaleSession ? "TIMED_OUT" : "FAILED";
-            error = isStaleSession
-              ? "Worker session reached 90s timeout. Test halted to prevent hanging."
-              : (currentRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
-            duration = isStaleSession ? "90.0s" : undefined;
-          } else {
-            state = "PENDING";
-          }
-        } else {
-          // If no defect was active, verify all steps as completed
+        if (s.id <= 5) {
           state = "COMPLETED";
-          duration = runElapsedSec > 0 ? `${(runElapsedSec / 7).toFixed(1)}s` : "Verified";
+          duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
+        } else if (s.id === 6) {
+          state = isStaleSession ? "TIMED_OUT" : "FAILED";
+          error = isStaleSession
+            ? "Worker session reached 90s timeout. Test halted to prevent hanging."
+            : (currentRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
+          duration = isStaleSession ? "90.0s" : undefined;
+        } else {
+          state = "PENDING";
         }
       } else if (isRunRunning) {
         if (s.id < runningStepIndex) {
@@ -677,8 +683,7 @@ export function ShipProofConsole() {
           state = "PENDING";
         }
       } else {
-        state = "COMPLETED";
-        duration = "Verified";
+        state = "PENDING";
       }
 
       return {
