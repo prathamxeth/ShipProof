@@ -1,14 +1,14 @@
 services:
-  # ShipProof Unified Backend & Store
+  # ShipProof Unified All-in-One Service (Frontend + Backend + Store + Kane CLI)
   - type: web
-    name: shipproof-backend
+    name: shipproof
     runtime: docker
     dockerfilePath: Dockerfile
-    plan: starter
+    plan: free
     region: oregon
     envVars:
       - key: PORT
-        value: 8000
+        value: 10000
       - key: ENVIRONMENT
         value: production
       - key: WORKER_EXECUTION_MODE
@@ -17,9 +17,7 @@ services:
         value: "true"
       - key: SHIPPROOF_BETA_KEY
         value: e2eb14edb1e819e5ac2250c4979c94181cd51419f29edf3a4f7279822d8c9f6a
-      - key: CORS_ORIGINS
-        value: http://localhost:3000,http://127.0.0.1:3000,https://shipproof.vercel.app
-    disk:
-      name: shipproof-data
-      mountPath: /app/backend/data
-      sizeGB: 1
+      - key: NEXT_PUBLIC_BACKEND_URL
+        value: http://127.0.0.1:8000
+      - key: NEXT_PUBLIC_STORE_URL
+        value: http://127.0.0.1:3005

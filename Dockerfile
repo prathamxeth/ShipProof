@@ -1,13 +1,14 @@
-# ShipProof Production Container (FastAPI + Acme Store + Node 20 + Kane CLI + Chromium runtime)
+# ShipProof Production All-in-One Container (Next.js 16 + FastAPI + Acme Store + Node 20 + Kane CLI + Chromium runtime)
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
-    PORT=8000 \
+    PORT=10000 \
     KANE_CLI_PATH="/usr/local/bin/kane-cli" \
     ENVIRONMENT="production" \
     ALLOW_LOCAL_TARGETS="true" \
-    WORKER_EXECUTION_MODE="subprocess"
+    WORKER_EXECUTION_MODE="subprocess" \
+    NEXT_TELEMETRY_DISABLED=1
 
 # 1. Install system utilities, curl, gnupg, git, and Chromium runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -51,13 +52,24 @@ WORKDIR /app
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-# 5. Copy application source
+# 5. Install Frontend dependencies
+COPY frontend/package*.json /app/frontend/
+WORKDIR /app/frontend
+RUN npm install --legacy-peer-deps
+WORKDIR /app
+
+# 6. Copy full codebase
 COPY . /app
 
-# 6. Ensure persistent data directories and executable permissions
+# 7. Build Next.js production bundle
+WORKDIR /app/frontend
+RUN npm run build
+WORKDIR /app
+
+# 8. Ensure data directories and execution permissions
 RUN mkdir -p /app/backend/data /app/backend/evidence && \
     chmod +x /app/scripts/start_production.sh 2>/dev/null || true
 
-EXPOSE 8000 3005
+EXPOSE 10000 8000 3005
 
 CMD ["/bin/bash", "/app/scripts/start_production.sh"]
