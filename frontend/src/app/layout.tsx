@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full w-full text-[#1c2a22] antialiased selection:bg-[#2d4a3e]/15 selection:text-[#1c2a22] relative overflow-x-hidden">
         <LiquidFilters />
-        {/* Full-bleed Springlight Meadow Background with Ambient Atmosphere Veil */}
+        {/* Full-bleed Springlight Meadow Background — Pure, Crisp, Unfiltered */}
         <div
           className="fixed inset-0 z-0 pointer-events-none"
           style={{
@@ -26,15 +26,7 @@ export default function RootLayout({
             backgroundRepeat: "no-repeat",
             backgroundAttachment: "fixed",
           }}
-        >
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.25), transparent 70%), linear-gradient(to bottom, rgba(247, 245, 239, 0.35) 0%, rgba(247, 245, 239, 0.15) 50%, rgba(247, 245, 239, 0.45) 100%)",
-            }}
-          />
-        </div>
+        />
         <div className="relative z-10 min-h-screen w-full flex flex-col">
           {children}
         </div>
