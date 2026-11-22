@@ -67,9 +67,9 @@ body {
   background: #2e3248;
 }
 
-/* Hallmark Gate 15 & 40: High-contrast instant focus rings for keyboard users */
+/* High-contrast subtle focus rings for keyboard users (neutral, non-blue) */
 :focus-visible {
-  outline: 2px solid #38bdf8;
+  outline: 1.5px solid rgba(255, 255, 255, 0.4);
   outline-offset: 2px;
   transition: none !important;
 }
@@ -79,7 +79,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #38bdf8;
+  outline: 1.5px solid rgba(255, 255, 255, 0.4);
   outline-offset: 2px;
 }
 
@@ -243,7 +243,7 @@ textarea:focus-visible {
 }
 
 .liquid-glass-btn:focus-visible {
-  outline: 2px solid #38bdf8;
+  outline: 1.5px solid rgba(255, 255, 255, 0.4);
   outline-offset: 2px;
 }
 

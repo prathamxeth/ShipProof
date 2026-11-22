@@ -49,14 +49,14 @@ export function ShopperJourneyTimeline({
   const isFailed = runStatus === "failed" || runStatus === "error" || runStatus === "incomplete" || runStatus === "timed_out" || isStale;
 
   return (
-    <div className="w-full flex flex-col gap-3.5 p-4 rounded-2xl liquid-glass-panel">
+    <div className="w-full flex flex-col gap-3.5 p-4 rounded-2xl bg-transparent border border-white/12 shadow-none">
       {/* 1. Header with Progress, Real Percentage & Elapsed Timer */}
       <div className="flex flex-col gap-2 border-b border-white/10 pb-3">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-white tracking-tight flex items-center gap-1.5">
               <span>Customer Journey Progress</span>
-              <span className="text-[10px] text-zinc-400 font-normal">
+              <span className="text-[10px] text-zinc-300 font-medium">
                 ({completedCount} of {totalCount} verified)
               </span>
             </span>
@@ -64,7 +64,7 @@ export function ShopperJourneyTimeline({
 
           <div className="flex items-center gap-3">
             {/* Live Elapsed Time */}
-            <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-300">
+            <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-200 font-semibold">
               <Clock className="w-3 h-3 text-sky-400" />
               <span>{elapsedSec.toFixed(1)}s</span>
             </div>
@@ -84,8 +84,8 @@ export function ShopperJourneyTimeline({
           </div>
         </div>
 
-        {/* Real Progress Bar — Liquid Glass Track */}
-        <div className="w-full h-2 rounded-full bg-white/4 border border-white/12 overflow-hidden relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+        {/* Real Progress Bar — Transparent Track */}
+        <div className="w-full h-2 rounded-full bg-white/5 border border-white/15 overflow-hidden relative shadow-none">
           <div
             className={`h-full transition-all duration-300 ease-out rounded-full ${
               isPassed
@@ -116,7 +116,7 @@ export function ShopperJourneyTimeline({
                   ? "bg-white/[0.03] border-white/10"
                   : isStepFailed
                   ? "bg-white/[0.06] border-white/20 shadow-sm"
-                  : "bg-transparent border-transparent opacity-50"
+                  : "bg-transparent border-transparent opacity-75"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -133,7 +133,7 @@ export function ShopperJourneyTimeline({
                       <AlertTriangle className="w-3.5 h-3.5" />
                     </div>
                   ) : (
-                    <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-mono text-zinc-400">
+                    <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-mono text-zinc-300 font-semibold">
                       {s.id}
                     </div>
                   )}
@@ -142,19 +142,19 @@ export function ShopperJourneyTimeline({
                 {/* Step Title & Sublabel */}
                 <div className="min-w-0 flex items-baseline gap-2 truncate">
                   <span
-                    className={`font-medium truncate ${
+                    className={`font-semibold truncate ${
                       isDone
-                        ? "text-zinc-200"
+                        ? "text-zinc-100"
                         : isCurrentRunning
-                        ? "text-white font-semibold"
+                        ? "text-white"
                         : isStepFailed
-                        ? "text-rose-200 font-semibold"
-                        : "text-zinc-400"
+                        ? "text-rose-200"
+                        : "text-zinc-300"
                     }`}
                   >
                     {s.title}
                   </span>
-                  <span className="text-[10.5px] text-zinc-400 truncate hidden sm:inline">
+                  <span className="text-[10.5px] text-zinc-300 font-normal truncate hidden sm:inline">
                     {s.sublabel}
                   </span>
                 </div>
@@ -163,14 +163,14 @@ export function ShopperJourneyTimeline({
               {/* Status Pill & Target — Empty Liquid Glass */}
               <div className="flex items-center gap-2 flex-none ml-2">
                 <span
-                  className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full border border-white/20 bg-transparent ${
+                  className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border border-white/20 bg-transparent ${
                     isDone
-                      ? "text-zinc-300"
+                      ? "text-zinc-200"
                       : isCurrentRunning
                       ? "text-sky-200 animate-pulse"
                       : isStepFailed
                       ? "text-rose-200"
-                      : "text-zinc-400"
+                      : "text-zinc-300"
                   }`}
                 >
                   {s.state === "COMPLETED"
@@ -191,10 +191,10 @@ export function ShopperJourneyTimeline({
 
       {/* 3. Stale Session Watchdog Alert */}
       {isStale && (
-        <div className="w-full p-3 rounded-xl liquid-glass-subcard border-amber-400/40 flex items-center justify-between text-xs text-amber-200 shadow-md">
+        <div className="w-full p-3 rounded-xl bg-transparent border border-amber-400/40 flex items-center justify-between text-xs text-amber-200 shadow-none">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-400 flex-none" />
-            <span>Worker session reached 90s timeout. Test halted to prevent hanging.</span>
+            <span className="font-semibold">Worker session reached 90s timeout. Test halted to prevent hanging.</span>
           </div>
           {onRetry && (
             <LiquidGlassButton variant="primary" size="sm" onClick={onRetry} className="flex-none ml-2">
@@ -207,10 +207,10 @@ export function ShopperJourneyTimeline({
 
       {/* 4. Failure Detail Callout */}
       {isFailed && failureReason && !isStale && (
-        <div className="w-full p-3 rounded-xl liquid-glass-subcard border-rose-400/35 text-xs text-rose-200 flex items-center justify-between shadow-md">
+        <div className="w-full p-3 rounded-xl bg-transparent border border-rose-400/35 text-xs text-rose-200 flex items-center justify-between shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle className="w-4 h-4 text-rose-400 flex-none" />
-            <span className="truncate">
+            <span className="truncate font-semibold">
               Obstruction: {failureReason.split("\n")[0]}
             </span>
           </div>

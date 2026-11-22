@@ -145,7 +145,8 @@ export type RunStatus =
   | "incomplete"
   | "cancelled"
   | "error"
-  | "verified";
+  | "verified"
+  | "timed_out";
 
 export interface VerificationRun {
   id: string;

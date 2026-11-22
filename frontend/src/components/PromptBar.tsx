@@ -231,7 +231,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
   background = 'transparent',
   color = '#f5f5f5',
   menuBackground = '#181923',
-  sparkColor = '#38bdf8',
+  sparkColor = 'rgba(255, 255, 255, 0.45)',
   sparkBoost = 1,
   width = '100%',
   radius = 20,
@@ -703,7 +703,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
       ) : null}
 
       <div
-        className="relative isolate flex cursor-text flex-col gap-2 p-3 w-full [border-radius:var(--pb-radius)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:opacity-0 before:content-[''] before:[background:radial-gradient(140%_120%_at_0%_100%,color-mix(in_srgb,var(--pb-spark)_26%,transparent),transparent_62%)] before:[transition:opacity_500ms_ease] data-[max]:before:opacity-100"
+        className="relative isolate flex cursor-text flex-col gap-2 p-3 w-full [border-radius:var(--pb-radius)] outline-none focus:outline-none focus-within:ring-1 focus-within:ring-white/20 transition-shadow duration-150 before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:opacity-0 before:content-[''] before:[background:radial-gradient(140%_120%_at_0%_100%,rgba(255,255,255,0.08),transparent_62%)] before:[transition:opacity_500ms_ease] data-[max]:before:opacity-100"
         style={{
           background: background === 'transparent' ? 'transparent' : 'var(--pb-bg)',
         }}
@@ -743,7 +743,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
         <textarea
           ref={inputRef}
-          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-[22px] text-inherit outline-none [font:inherit] [overflow-wrap:anywhere] placeholder:[color:color-mix(in_srgb,var(--pb-ink)_45%,transparent)] [@media(pointer:coarse)]:text-[16px]"
+          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-[22px] text-inherit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none focus:shadow-none [font:inherit] [overflow-wrap:anywhere] placeholder:[color:color-mix(in_srgb,var(--pb-ink)_45%,transparent)] [@media(pointer:coarse)]:text-[16px]"
           rows={1}
           value={draft}
           placeholder={listening ? 'Listening…' : placeholder}

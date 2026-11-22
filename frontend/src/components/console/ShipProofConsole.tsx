@@ -165,12 +165,15 @@ export function ShipProofConsole() {
   }, [selectedRun?.status, selectedRun?.created_at, selectedRunId]);
 
   // Determine if active session has timed out / stalled
-  const isStaleSession = useMemo(() => {
-    if (selectedRun?.status === "running" || selectedRun?.status === "queued") {
-      return activeTimerSec >= 90;
+  const isTimedOut = useMemo(() => {
+    if (selectedRun?.status === "timed_out") return true;
+    if ((selectedRun?.status === "running" || selectedRun?.status === "queued") && activeTimerSec >= 90) {
+      return true;
     }
     return false;
   }, [selectedRun?.status, activeTimerSec]);
+
+  const isStaleSession = isTimedOut;
 
   // Compute actual elapsed time: live active time if running, or exact completed duration from DB timestamps
   const runElapsedSec = useMemo(() => {
@@ -228,7 +231,7 @@ export function ShipProofConsole() {
       return;
     }
 
-    if (defectActive || selectedRun?.status === "failed" || selectedRun?.status === "error" || isStaleSession) {
+    if (defectActive || selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut) {
       // Prioritize repair directly tied to the currently selected run
       const runRepair = repairs.find(
         (r) => r.run_id === selectedRunId || r.retest_run_id === selectedRunId
@@ -250,11 +253,19 @@ export function ShipProofConsole() {
           .then((rep) => {
             if (!isCancelled && rep) {
               setActiveRepair(rep);
-              if (rep.status === "VERIFIED") setRepairStep(6);
-              else if (rep.status === "RETESTING" || rep.status === "APPLYING" || rep.status === "VALIDATING") setRepairStep(5);
-              else if (rep.status === "AWAITING_APPROVAL") setRepairStep(4);
-              else if (rep.status === "AGENT_RESPONSE_RECEIVED") setRepairStep(3);
-              else setRepairStep(2);
+              if (isTimedOut) {
+                setRepairStep(1);
+              } else if (rep.status === "VERIFIED") {
+                setRepairStep(6);
+              } else if (rep.status === "RETESTING" || rep.status === "APPLYING" || rep.status === "VALIDATING") {
+                setRepairStep(5);
+              } else if (rep.status === "AWAITING_APPROVAL") {
+                setRepairStep(4);
+              } else if (rep.status === "AGENT_RESPONSE_RECEIVED") {
+                setRepairStep(3);
+              } else {
+                setRepairStep(2);
+              }
             }
           })
           .catch(() => {});
@@ -274,12 +285,17 @@ export function ShipProofConsole() {
         setActiveRepair(verified);
         setRepairStep(6);
       } else {
-        const latest = repairs[0];
-        setActiveRepair(latest || null);
-        setRepairStep(latest?.status === "VERIFIED" ? 6 : 1);
+        if (selectedRun?.status === "passed" || selectedRun?.status === "verified") {
+          const latestVerified = repairs.find((r) => r.status === "VERIFIED");
+          setActiveRepair(latestVerified || null);
+          setRepairStep(6);
+        } else {
+          setActiveRepair(null);
+          setRepairStep(1);
+        }
       }
     }
-  }, [repairs, defectActive, selectedRunId, selectedRun?.status, isStaleSession]);
+  }, [repairs, defectActive, selectedRunId, selectedRun?.status, isTimedOut]);
 
   // Handle Sentinel Interval Change
   const handleSetInterval = async (seconds: number) => {
@@ -915,7 +931,7 @@ export function ShipProofConsole() {
         {/* 2. Verification Dispatch & Quick Scenarios — Seamless Liquid Glass Chatbox Pill */}
         <div className="flex flex-col gap-3 w-full">
           <div className="liquid-card-wrap relative w-full">
-            <div className="liquid-glass-card relative overflow-hidden rounded-[22px] p-0 w-full">
+            <div className="liquid-glass-card relative overflow-hidden rounded-[22px] p-0 w-full focus-within:ring-1 focus-within:ring-white/20">
               <PromptBar
                 placeholder="Tell the AI what to test (e.g. Try buying Voyager Shoes on Acme Store)…"
                 onSend={handlePromptSend}
@@ -923,6 +939,7 @@ export function ShipProofConsole() {
                 width="100%"
                 radius={22}
                 background="transparent"
+                sparkColor="rgba(255, 255, 255, 0.45)"
                 className="w-full"
                 models={[
                   { key: "kane-deep", name: "AI Shopper Pro", tag: "Full Journey" },
@@ -1297,10 +1314,9 @@ export function ShipProofConsole() {
 
           {/* Right Column (7 Cols): Live Customer Experience & Tests Feed */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            {/* Card 3: Live Customer Experience — Liquid Glass Card */}
-            <LiquidGlassCard
-              glowColor="rgba(56, 189, 248, 0.25)"
-              className="p-5 flex flex-col gap-4 shadow-2xl"
+            {/* Card 3: Live Customer Experience — Pure Transparent Preview Surface */}
+            <div
+              className="rounded-[26px] border border-white/12 bg-transparent p-5 flex flex-col gap-4 shadow-none"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -1311,7 +1327,7 @@ export function ShipProofConsole() {
                     <h3 className="text-sm font-semibold text-white tracking-tight">
                       {selectedRun?.title || "Live Customer Journey"}
                     </h3>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-[11px] text-zinc-300 font-medium">
                       Testing: Acme Store ({selectedRun?.target_url || "http://127.0.0.1:3005"})
                     </p>
                   </div>
@@ -1322,7 +1338,7 @@ export function ShipProofConsole() {
                     status={
                       selectedRun?.status === "passed" || selectedRun?.status === "verified"
                         ? "done"
-                        : selectedRun?.status === "failed" || selectedRun?.status === "error"
+                        : selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut
                         ? "failed"
                         : "running"
                     }
@@ -1330,15 +1346,19 @@ export function ShipProofConsole() {
                     doneColor="#10b981"
                     errorColor="#ef4444"
                   />
-                  <span className={`text-xs uppercase font-semibold ${
+                  <span className={`text-xs uppercase font-bold tracking-tight ${
                     selectedRun?.status === "passed" || selectedRun?.status === "verified"
                       ? "text-emerald-400"
+                      : isTimedOut
+                      ? "text-amber-400"
                       : selectedRun?.status === "failed" || selectedRun?.status === "error"
                       ? "text-rose-400"
-                      : "text-blue-400"
+                      : "text-sky-400"
                   }`}>
                     {selectedRun?.status === "passed" || selectedRun?.status === "verified"
                       ? "CHECKOUT HEALTHY"
+                      : isTimedOut
+                      ? "EXECUTION TIMED OUT (90s)"
                       : selectedRun?.status === "failed"
                       ? "CHECKOUT BLOCKED"
                       : selectedRun?.status === "error"
@@ -1350,20 +1370,11 @@ export function ShipProofConsole() {
                 </div>
               </div>
 
-              {/* 1. Live Chromium Browser Viewport — Visual Centerpiece */}
+              {/* 1. Live Chromium Browser Viewport — Full Landscape 16:9 */}
               <LiveBrowserViewport
                 currentUrl={selectedRun?.target_url || "http://127.0.0.1:3005"}
-                runStatus={isStaleSession ? "timed_out" : (selectedRun?.status || "passed")}
+                runStatus={isTimedOut ? "timed_out" : (selectedRun?.status || "passed")}
                 screenshotUrl={evidenceScreenshotUrl}
-                activeStepTitle={
-                  selectedRun?.status === "running" && !isStaleSession
-                    ? `Testing: ${shopperJourneySteps.find((s) => s.state === "RUNNING")?.title || "Store Checkout"}`
-                    : selectedRun?.status === "failed" || isStaleSession
-                    ? "Checkout Blocked at Step 6"
-                    : "Verified Purchase Completed"
-                }
-                failureReason={isStaleSession ? "Worker session reached 90s timeout. Test halted to prevent hanging." : selectedRun?.failure_reason}
-                elapsedSec={runElapsedSec}
                 runId={selectedRun?.id}
                 onRetry={handleRetryRun}
               />
@@ -1376,46 +1387,45 @@ export function ShipProofConsole() {
                 totalCount={7}
                 elapsedSec={runElapsedSec}
                 currentUrl={selectedRun?.target_url || "http://127.0.0.1:3005"}
-                runStatus={isStaleSession ? "timed_out" : (selectedRun?.status || "passed")}
-                failureReason={isStaleSession ? "Worker session reached 90s timeout. Test halted to prevent hanging." : selectedRun?.failure_reason}
+                runStatus={isTimedOut ? "timed_out" : (selectedRun?.status || "passed")}
+                failureReason={isTimedOut ? "Worker session reached 90s timeout. Test halted to prevent hanging." : selectedRun?.failure_reason}
                 onRetry={handleRetryRun}
-                isStale={isStaleSession}
+                isStale={isTimedOut}
               />
 
               {/* 3. Customer Goal & Full-Width Defect Proof */}
-              <div className="w-full p-4 rounded-2xl liquid-glass-panel flex flex-col gap-2.5 text-xs text-zinc-300">
+              <div className="w-full p-4 rounded-2xl bg-transparent border border-white/12 flex flex-col gap-2.5 text-xs text-zinc-200">
                 <div className="flex items-center justify-between text-zinc-300 text-[11px] w-full">
-                  <span className="font-semibold text-zinc-200 uppercase tracking-wide">Customer Goal:</span>
-                  <span className="font-mono text-zinc-400">Test ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
+                  <span className="font-semibold text-white uppercase tracking-wide">Customer Goal:</span>
+                  <span className="font-mono text-zinc-300 font-semibold">Test ID: {selectedRun?.id?.slice(0, 8) || "run-latest"}</span>
                 </div>
-                <p className="text-zinc-200 leading-relaxed w-full">
+                <p className="text-zinc-100 font-medium leading-relaxed w-full">
                   {selectedRun?.objective || "Verify customer can select Voyager Shoes (Size M), add to bag ($99.00), and complete checkout without errors."}
                 </p>
-                {(selectedRun?.failure_reason || selectedRun?.status === "failed" || selectedRun?.status === "error" || isStaleSession) && (
-                  <div className="liquid-card-wrap relative w-full mt-3">
-                    <div className="w-full flex items-center justify-between gap-4 p-4 rounded-xl border border-white/20 bg-transparent backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_4px_16px_rgba(0,0,0,0.2)] text-zinc-100">
+                {(selectedRun?.failure_reason || selectedRun?.status === "failed" || selectedRun?.status === "error" || isTimedOut) && (
+                  <div className="w-full mt-2">
+                    <div className="w-full flex items-center justify-between gap-4 p-4 rounded-xl border border-white/15 bg-transparent text-zinc-100 shadow-none">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <AlertTriangle className="w-4 h-4 text-rose-400 flex-none animate-pulse" />
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="text-xs font-bold text-white tracking-tight">
-                            {isStaleSession ? "Execution Timed Out (90s)" : "Issue Found: Checkout Button Blocked"}
+                            {isTimedOut ? "Execution Timed Out (90s)" : "Issue Found: Checkout Button Blocked"}
                           </span>
-                          <span className="text-[11px] text-zinc-200 leading-normal wrap-break-word mt-0.5">
-                            {isStaleSession
+                          <span className="text-[11px] text-zinc-200 leading-normal wrap-break-word mt-0.5 font-medium">
+                            {isTimedOut
                               ? "Worker session reached 90s timeout. Test halted to prevent hanging."
                               : (selectedRun?.failure_reason ? selectedRun.failure_reason.split("\n")[0] : "Checkout button was disabled or unresponsive on cart page.")}
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] uppercase font-mono px-3 py-1 rounded-full border border-white/20 bg-transparent text-rose-300 font-semibold whitespace-nowrap flex-none">
-                        {isStaleSession ? "Timed Out" : "Step 6 Blocked"}
+                      <span className="text-[10px] uppercase font-mono px-3 py-1 rounded-full border border-white/20 bg-transparent text-rose-300 font-bold whitespace-nowrap flex-none">
+                        {isTimedOut ? "Timed Out" : "Step 6 Blocked"}
                       </span>
                     </div>
-                    <div className="liquid-button-shadow" aria-hidden="true" style={{ borderRadius: '12px' }} />
                   </div>
                 )}
               </div>
-            </LiquidGlassCard>
+            </div>
 
             {/* Card 4: AnimatedList of All Runs — Liquid Glass Card */}
             <LiquidGlassCard
