@@ -45,8 +45,11 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# 3. Install Kane CLI globally
-RUN npm install -g @testmuai/kane-cli
+# 3. Install Kane CLI globally and symlink to standard bin paths
+RUN npm install -g @testmuai/kane-cli && \
+    ln -sf $(which kane-cli || echo /usr/bin/kane-cli) /usr/local/bin/kane-cli && \
+    mkdir -p /opt/homebrew/bin && \
+    ln -sf $(which kane-cli || echo /usr/bin/kane-cli) /opt/homebrew/bin/kane-cli
 
 WORKDIR /app
 
@@ -63,12 +66,16 @@ WORKDIR /app
 # 6. Copy full codebase
 COPY . /app
 
-# 7. Build Next.js production bundle
+# 7. Setup Kane CLI configuration and credentials
+RUN mkdir -p /root/.testmuai/kaneai && \
+    cp -rf /app/docker/kaneai/* /root/.testmuai/kaneai/ 2>/dev/null || true
+
+# 8. Build Next.js production bundle
 WORKDIR /app/frontend
 RUN npm run build
 WORKDIR /app
 
-# 8. Ensure data directories and execution permissions
+# 9. Ensure data directories and execution permissions
 RUN mkdir -p /app/backend/data /app/backend/evidence && \
     chmod +x /app/scripts/start_production.sh 2>/dev/null || true
 

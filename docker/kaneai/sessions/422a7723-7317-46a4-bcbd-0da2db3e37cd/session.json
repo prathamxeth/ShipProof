@@ -1,0 +1,30 @@
+{
+  "session_id": "422a7723-7317-46a4-bcbd-0da2db3e37cd",
+  "started_at": "2026-11-15T21:30:55.097Z",
+  "ended_at": "2026-11-15T21:31:49.995Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "392c5cb1-c752-476a-bf41-eb8efa401468",
+  "testcase_id": "01M7GHXM94ZCVV7403CA2Q04JM",
+  "commit_id": "422a7723-7317-46a4-bcbd-0da2db3e37cd",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed.",
+      "status": "passed",
+      "summary": "Added the selected item to the cart.\nProceeded from the cart to checkout.\nReached the checkout page, where the “Secure Checkout” heading is displayed.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/422a7723-7317-46a4-bcbd-0da2db3e37cd/runs/0"
+    }
+  ],
+  "credits_consumed": 9.530832500000002
+}

@@ -1,0 +1,21 @@
+{
+  "session_id": "3dc324f1-4682-405c-bcdb-623767fe2031",
+  "started_at": "2026-11-15T19:53:06.006Z",
+  "ended_at": "2026-11-15T19:54:04.581Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "error",
+  "total_runs": 0,
+  "test_id": "ebedc61d-c8d9-4ac5-a1ed-0f4487a2f1a6",
+  "testcase_id": null,
+  "commit_id": "3dc324f1-4682-405c-bcdb-623767fe2031",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": []
+}

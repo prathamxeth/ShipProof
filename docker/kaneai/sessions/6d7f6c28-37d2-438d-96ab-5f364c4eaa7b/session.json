@@ -1,0 +1,30 @@
+{
+  "session_id": "6d7f6c28-37d2-438d-96ab-5f364c4eaa7b",
+  "started_at": "2026-11-15T20:19:32.545Z",
+  "ended_at": "2026-11-15T20:20:17.625Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "failed",
+  "total_runs": 1,
+  "test_id": "0c53d764-cabc-49b9-8211-6977ee907e9c",
+  "testcase_id": "01M7GDTY1EMZ9C4HB4220287K8",
+  "commit_id": "6d7f6c28-37d2-438d-96ab-5f364c4eaa7b",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Verify that the page title is 'Example Domain' and the main heading contains 'Example Domain'",
+      "status": "failed",
+      "summary": "The test relies on a public page whose displayed content no longer matches the saved expectation. The page loaded normally with a successful response, but the screenshot shows the current multilingual page rather than a heading reading “Example Domain.”\nUpdate the test to validate the current public page, or use a controlled fixture page with stable title and heading content. Also review the heading-analysis step because it reported success despite the final check and screenshot.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/6d7f6c28-37d2-438d-96ab-5f364c4eaa7b/runs/0"
+    }
+  ],
+  "credits_consumed": 13.26709
+}

@@ -3,8 +3,8 @@ import "./globals.css";
 import LiquidFilters from "@/components/ui/LiquidFilters";
 
 export const metadata: Metadata = {
-  title: "ShipProof — AI Store Guardian & Self-Healing Checkout",
-  description: "Autonomous 24/7 AI Store Guardian & Self-Healing Checkout. Simulates customer journeys and auto-repairs store issues.",
+  title: "ShipProof — Continuous Checkout Protection & Instant Recovery",
+  description: "Continuous checkout monitoring and instant recovery for modern e-commerce stores.",
 };
 
 export default function RootLayout({

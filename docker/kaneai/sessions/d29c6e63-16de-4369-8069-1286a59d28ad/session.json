@@ -1,0 +1,30 @@
+{
+  "session_id": "d29c6e63-16de-4369-8069-1286a59d28ad",
+  "started_at": "2026-11-17T10:13:14.901Z",
+  "ended_at": "2026-11-17T10:13:50.877Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "d7446201-d8a1-46fc-aa04-bf13152b47ba",
+  "testcase_id": "01M7MFY70JP40TBECFRN0T0K2M",
+  "commit_id": "d29c6e63-16de-4369-8069-1286a59d28ad",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "check catalog",
+      "status": "passed",
+      "summary": "Checked the catalog as requested.\nThe catalog check was completed successfully.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/d29c6e63-16de-4369-8069-1286a59d28ad/runs/0"
+    }
+  ],
+  "credits_consumed": 9.8849925
+}

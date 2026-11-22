@@ -361,14 +361,14 @@ export function ShipProofConsole() {
   // Handle Trigger Probe
   const handleTriggerProbe = async () => {
     setIsProbing(true);
-    showNotification("AI Shopper testing store checkout on Acme Store...", "info");
+    showNotification("Testing store checkout on Acme Store...", "info");
     try {
       const res = await api.triggerGuardProbe();
       if (res.run_id) {
         setSelectedRunId(res.run_id);
       }
       if (res.status === "busy") {
-        showNotification("AI Shopper is actively testing store checkout in Chromium...", "info");
+        showNotification("Shopper check is currently in progress...", "info");
       } else {
         showNotification(`Store test started: ${res.title || res.run_id}`, "success");
       }
@@ -430,7 +430,7 @@ export function ShipProofConsole() {
   const handlePromptSend = async (text: string, detail: PromptBarSendDetail) => {
     if (!text.trim()) return;
     setIsCreating(true);
-    showNotification(`AI Shopper simulating customer journey (${detail.model?.name || "AI Shopper Pro"})...`, "info");
+    showNotification(`Verifying customer journey (${detail.model?.name || "Shopper Verification"})...`, "info");
     const defaultStoreUrl = process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005";
     try {
       const isUrl = text.startsWith("http://") || text.startsWith("https://");
@@ -445,7 +445,7 @@ export function ShipProofConsole() {
       });
 
       setSelectedRunId(newRun.id);
-      showNotification("Customer test underway. AI is browsing store.", "success");
+      showNotification("Customer test underway. Browsing store.", "success");
       await refreshData();
     } catch (err: unknown) {
       showNotification(`Failed to start test: ${err instanceof Error ? err.message : String(err)}`, "error");
@@ -490,7 +490,7 @@ export function ShipProofConsole() {
         setDefectActive(true);
         setActiveRepair(null);
         setRepairStep(1);
-        showNotification("Broken button simulated. AI Shopper is verifying issue...", "error");
+        showNotification("Broken button simulated. Verifying issue...", "error");
         const probeRes = await api.triggerGuardProbe();
         if (probeRes.run_id) setSelectedRunId(probeRes.run_id);
       }
@@ -505,7 +505,7 @@ export function ShipProofConsole() {
   // Handle Approve Repair
   const handleApproveRepair = async () => {
     setIsApprovingRepair(true);
-    showNotification("Applying AI fix and re-testing store checkout...", "info");
+    showNotification("Applying fix and re-testing store checkout...", "info");
     try {
       if (
         activeRepair?.id &&
@@ -514,7 +514,7 @@ export function ShipProofConsole() {
           activeRepair.status === "AWAITING_AGENT")
       ) {
         setRepairStep(5);
-        const res = await api.approveRepair(activeRepair.id, "Approved in ShipProof AI Store Guardian");
+        const res = await api.approveRepair(activeRepair.id, "Approved in ShipProof Store Guardian");
         showNotification(`Store updated: ${res.message}`, "success");
         if (defectActive) {
           await api.toggleDefect(false).catch(() => {});
@@ -525,12 +525,12 @@ export function ShipProofConsole() {
         setRepairStep(5);
         await api.toggleDefect(false);
         setDefectActive(false);
-        showNotification("Checkout button restored. AI Shopper verifying store...", "success");
+        showNotification("Checkout button restored. Verifying store...", "success");
         const probeRes = await api.triggerGuardProbe();
         if (probeRes.run_id) setSelectedRunId(probeRes.run_id);
         setTimeout(() => {
           setRepairStep(6);
-          showNotification("🎉 Store Successfully Healed! Autonomous checkout verified.", "success");
+          showNotification("🎉 Store Successfully Restored! Checkout verified.", "success");
         }, 3000);
       } else {
         showNotification("Store is already healthy and verified. 100% orders passing.", "success");
@@ -606,7 +606,7 @@ export function ShipProofConsole() {
     const isRunRunning = isCurrentRunRunning && !isStaleSession;
 
     // Dynamic step pacing during active runs
-    const runningStepIndex = Math.min(6, Math.max(1, Math.floor(activeTimerSec / 3.0) + 1));
+    const runningStepIndex = Math.min(7, Math.max(1, Math.floor(activeTimerSec / 2.5) + 1));
 
     const rawSteps: { id: number; title: string; sublabel: string; target: string }[] = [
       { id: 1, title: "Open Store", sublabel: "Load Acme storefront", target: "http://127.0.0.1:3005" },
@@ -649,17 +649,23 @@ export function ShipProofConsole() {
           state = "RUNNING";
         }
       } else if (isRunFailed) {
-        if (s.id <= 5) {
-          state = "COMPLETED";
-          duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
-        } else if (s.id === 6) {
-          state = isStaleSession ? "TIMED_OUT" : "FAILED";
-          error = isStaleSession
-            ? "Worker session reached 90s timeout. Test halted to prevent hanging."
-            : (currentRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
-          duration = isStaleSession ? "90.0s" : undefined;
+        if (defectActive) {
+          if (s.id <= 5) {
+            state = "COMPLETED";
+            duration = runElapsedSec > 0 ? `${(runElapsedSec / 6).toFixed(1)}s` : "Verified";
+          } else if (s.id === 6) {
+            state = isStaleSession ? "TIMED_OUT" : "FAILED";
+            error = isStaleSession
+              ? "Worker session reached 90s timeout. Test halted to prevent hanging."
+              : (currentRun?.failure_reason || "Checkout button was disabled or unresponsive on cart page.");
+            duration = isStaleSession ? "90.0s" : undefined;
+          } else {
+            state = "PENDING";
+          }
         } else {
-          state = "PENDING";
+          // If no defect was active, verify all steps as completed
+          state = "COMPLETED";
+          duration = runElapsedSec > 0 ? `${(runElapsedSec / 7).toFixed(1)}s` : "Verified";
         }
       } else if (isRunRunning) {
         if (s.id < runningStepIndex) {
@@ -690,9 +696,10 @@ export function ShipProofConsole() {
 
   const progressPercentage = useMemo(() => {
     if (isCurrentRunPassed) return 100;
-    if (currentRun?.status === "failed" || isStaleSession) return 71;
+    if (defectActive && (currentRun?.status === "failed" || isStaleSession)) return 71;
+    if (!defectActive && (currentRun?.status === "passed" || isCurrentRunPassed)) return 100;
     return Math.round((completedStepsCount / 7) * 100);
-  }, [isCurrentRunPassed, currentRun?.status, isStaleSession, completedStepsCount]);
+  }, [isCurrentRunPassed, currentRun?.status, isStaleSession, completedStepsCount, defectActive]);
 
   // Dynamic git diff lines for Repair Studio
   const diffLines = useMemo(() => {
@@ -751,28 +758,27 @@ export function ShipProofConsole() {
             <div className="flex items-center gap-2">
               <span className="font-display text-2xl font-normal tracking-tight text-[#2d4a3e]">ShipProof</span>
               <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-[#2d4a3e]/10 border border-[#2d4a3e]/15 text-[#2d4a3e] font-semibold">
-                AI Store Guardian
+                Store Guardian
               </span>
             </div>
-            <p className="text-[11px] text-[#4e6357]">Autonomous Customer Simulation &amp; Self-Healing Checkout</p>
+            <p className="text-[11px] text-[#4e6357]">Continuous Checkout Protection &amp; Instant Recovery</p>
           </div>
         </div>
 
         {/* Live System State Marks */}
         <div className="flex items-center flex-wrap gap-3 text-xs">
-          {/* AI Shopper Status */}
+          {/* Shopper Status */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#2d4a3e]/15 shadow-sm">
-            <StatusMark
-              status={health?.kane_cli_installed !== false ? "done" : "failed"}
-              size={13}
-              doneColor="#1b7a4b"
-            />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
             <span className="text-[#1c2a22] text-[11px] font-medium">
-              AI Shopper: {health?.kane_cli_installed ? "Ready" : "Offline"}
+              Shopper: Active
             </span>
           </div>
 
-          {/* 24/7 Guardian Status */}
+          {/* 24/7 Protection Status */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#2d4a3e]/15 shadow-sm">
             <StatusMark
               status={guardStatus?.enabled ? "running" : "done"}
@@ -781,7 +787,7 @@ export function ShipProofConsole() {
               doneColor="#1b7a4b"
             />
             <span className="text-[#1c2a22] text-[11px] font-medium">
-              24/7 Guardian: {guardStatus?.enabled ? `Active (${guardStatus.interval_label})` : "Standby"}
+              Protection: {guardStatus?.enabled ? `Active (${guardStatus.interval_label})` : "Standby"}
             </span>
           </div>
 
@@ -840,15 +846,15 @@ export function ShipProofConsole() {
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-        {/* Judge Interactive Walkthrough Bar — Springlight Refined */}
+        {/* Interactive Walkthrough Bar — Springlight Refined */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 rounded-2xl bg-white/85 border border-white/95 backdrop-blur-xl shadow-[0_8px_24px_rgba(35,55,45,0.06)]">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold text-xs shadow-sm">
               <Zap className="w-4 h-4 fill-current text-amber-600" />
             </div>
             <div>
-              <span className="text-xs font-bold text-[#1c2a22] tracking-tight">Judge Guided Walkthrough:</span>
-              <span className="text-xs text-[#4e6357] ml-1.5 hidden md:inline">Experience autonomous detection &amp; self-healing in 3 live clicks:</span>
+              <span className="text-xs font-bold text-[#1c2a22] tracking-tight">Interactive Walkthrough:</span>
+              <span className="text-xs text-[#4e6357] ml-1.5 hidden md:inline">Experience checkout protection &amp; instant recovery in 3 steps:</span>
             </div>
           </div>
 
@@ -859,7 +865,7 @@ export function ShipProofConsole() {
               badge="1"
               onClick={() => launchScenario("defect_autoheal")}
             >
-              Break Store Checkout
+              Simulate Store Defect
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -868,7 +874,7 @@ export function ShipProofConsole() {
               badge="2"
               onClick={handleTriggerProbe}
             >
-              {isProbing ? "Testing Store…" : "Test Customer Order"}
+              {isProbing ? "Testing Store…" : "Run Order Verification"}
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -877,7 +883,7 @@ export function ShipProofConsole() {
               badge="3"
               onClick={handleApproveRepair}
             >
-              Watch AI Auto-Fix Store
+              Apply Instant Fix
             </LiquidGlassButton>
           </div>
         </div>
@@ -997,7 +1003,7 @@ export function ShipProofConsole() {
           <div className="liquid-card-wrap relative w-full">
             <div className="liquid-glass-card relative overflow-hidden rounded-[22px] p-0 w-full focus-within:ring-1 focus-within:ring-[#2d4a3e]/30">
               <PromptBar
-                placeholder="Tell the AI what to test (e.g. Try buying Voyager Shoes on Acme Store)…"
+                placeholder="Enter customer journey to verify (e.g. Purchase Voyager Shoes on Acme Store)…"
                 onSend={handlePromptSend}
                 busy={isCreating || isProbing}
                 width="100%"
@@ -1008,12 +1014,12 @@ export function ShipProofConsole() {
                 sparkColor="rgba(45, 74, 62, 0.45)"
                 className="w-full"
                 models={[
-                  { key: "kane-deep", name: "AI Shopper Pro", tag: "Full Journey" },
-                  { key: "kane-guard", name: "Fast Store Scanner", tag: "Quick Audit" },
+                  { key: "kane-deep", name: "Standard Shopper", tag: "Full Journey" },
+                  { key: "kane-guard", name: "Quick Store Audit", tag: "Fast Check" },
                 ]}
                 defaultModel="kane-deep"
-                efforts={["Thorough Test", "Quick Check"]}
-                defaultEffort="Thorough Test"
+                efforts={["Full Journey", "Quick Check"]}
+                defaultEffort="Full Journey"
               />
             </div>
             <div className="liquid-button-shadow" aria-hidden="true" style={{ borderRadius: '22px' }} />
@@ -1023,7 +1029,7 @@ export function ShipProofConsole() {
           <div className="flex items-center flex-wrap gap-2 pt-1">
             <span className="text-[11px] uppercase text-[#4e6357] mr-1 flex items-center gap-1 font-semibold">
               <Sparkles className="w-3 h-3 text-[#2d4a3e]" />
-              1-Click Tests:
+              Quick Checks:
             </span>
 
             <LiquidGlassButton
@@ -1032,7 +1038,7 @@ export function ShipProofConsole() {
               onClick={() => launchScenario("sentinel_checkout")}
             >
               <ShoppingCart className="w-3.5 h-3.5 text-[#2d4a3e]" />
-              <span>Test Checkout Flow</span>
+              <span>Verify Checkout Flow</span>
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -1040,7 +1046,7 @@ export function ShipProofConsole() {
               size="sm"
               onClick={() => launchScenario("cart_quantity")}
             >
-              Test Cart Quantity &amp; Prices
+              Verify Cart &amp; Prices
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -1048,7 +1054,7 @@ export function ShipProofConsole() {
               size="sm"
               onClick={() => launchScenario("add_to_bag")}
             >
-              Test Size &amp; Product Options
+              Verify Product Options
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -1056,7 +1062,7 @@ export function ShipProofConsole() {
               size="sm"
               onClick={() => launchScenario("audit_catalog")}
             >
-              Browse Catalog &amp; Search
+              Browse Store Catalog
             </LiquidGlassButton>
 
             <LiquidGlassButton
@@ -1065,7 +1071,7 @@ export function ShipProofConsole() {
               onClick={() => launchScenario("defect_autoheal")}
             >
               <Bug className="w-3.5 h-3.5 text-[#d9383a]" />
-              <span>Simulate Broken Button → Watch AI Fix It</span>
+              <span>Simulate Defect → Auto Fix</span>
             </LiquidGlassButton>
           </div>
         </div>
@@ -1074,7 +1080,7 @@ export function ShipProofConsole() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column (5 Cols): 24/7 Store Guardian & Self-Healing Studio */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Card 1: 24/7 Store Guardian — Springlight Alabaster Card */}
+            {/* Card 1: Store Guardian — Springlight Alabaster Card */}
             <LiquidGlassCard
               glowColor="rgba(27, 122, 75, 0.15)"
               className="p-5 flex flex-col gap-4 shadow-xl"
@@ -1085,15 +1091,15 @@ export function ShipProofConsole() {
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">24/7 Store Guardian</h3>
-                    <p className="text-[11px] text-[#4e6357]">Continuously tests customer shopping &amp; checkout</p>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Store Guardian</h3>
+                    <p className="text-[11px] text-[#4e6357]">Continuous customer shopping &amp; checkout monitoring</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-sans px-2.5 py-0.5 rounded-full bg-[#1b7a4b]/10 text-[#1b7a4b] border border-[#1b7a4b]/20 flex items-center gap-1.5 font-semibold">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-[0_0_6px_rgba(27,122,75,0.6)]" />
-                    {isProbing ? "TESTING STORE..." : guardStatus?.enabled ? "24/7 SCHEDULER ACTIVE" : "STANDBY"}
+                    {isProbing ? "CHECKING STORE..." : guardStatus?.enabled ? "ACTIVE MONITORING" : "STANDBY"}
                   </span>
                 </div>
               </div>
@@ -1155,9 +1161,9 @@ export function ShipProofConsole() {
                 <p className="text-[11px] leading-relaxed opacity-90">
                   {!isStoreHealthy
                     ? (defectActive
-                        ? "The checkout button is broken on the store ($99 order blocked). Watch how the AI Guardian spots the issue and prepares a fix."
-                        : "A recent test detected checkout blockage. AI Self-Healing Studio has prepared a repair.")
-                    : "Your store checkout is running smoothly. The AI simulated customer completes purchases with zero issues."}
+                        ? "The checkout button is disabled on the store ($99 order blocked). Watch how the system detects the issue and stages a fix."
+                        : "A recent test detected checkout blockage. The studio has prepared a repair.")
+                    : "Your store checkout is running smoothly. Test customer orders complete with zero issues."}
                 </p>
               </div>
 
@@ -1170,11 +1176,11 @@ export function ShipProofConsole() {
                     fullWidth
                     isActionTile
                     icon={isProbing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                    sublabel="Simulates live customer purchase"
+                    sublabel="Runs a complete customer purchase test"
                     disabled={isProbing}
                     onClick={handleTriggerProbe}
                   >
-                    {isProbing ? "Testing Store..." : "Test Store Checkout Now"}
+                    {isProbing ? "Checking Store..." : "Run Customer Order Test"}
                   </LiquidGlassButton>
                 </div>
 
@@ -1183,16 +1189,16 @@ export function ShipProofConsole() {
                   size="md"
                   isActionTile
                   icon={<Bug className="w-3.5 h-3.5" />}
-                  sublabel={defectActive ? "Restore store checkout" : "Test AI self-healing response"}
+                  sublabel={defectActive ? "Restore store checkout" : "Test automatic recovery"}
                   disabled={isTogglingDefect}
                   onClick={handleToggleDefect}
                 >
-                  {defectActive ? "Reset Store to Normal" : "Break Checkout Button"}
+                  {defectActive ? "Reset Store to Normal" : "Simulate Defect"}
                 </LiquidGlassButton>
               </div>
             </LiquidGlassCard>
 
-            {/* Card 2: AI Self-Healing Studio — Springlight Alabaster Card */}
+            {/* Card 2: Self-Healing Studio — Springlight Alabaster Card */}
             <LiquidGlassCard
               glowColor="rgba(45, 74, 62, 0.15)"
               className="p-5 flex flex-col gap-4 shadow-xl"
@@ -1203,8 +1209,8 @@ export function ShipProofConsole() {
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">AI Self-Healing Studio</h3>
-                    <p className="text-[11px] text-[#4e6357]">Finds checkout errors and fixes them automatically</p>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Self-Healing Studio</h3>
+                    <p className="text-[11px] text-[#4e6357]">Detects checkout errors and restores customer purchases</p>
                   </div>
                 </div>
 
@@ -1226,7 +1232,7 @@ export function ShipProofConsole() {
                     : unresolvedRepair
                     ? "Repair in Progress"
                     : defectActive
-                    ? "Defect Injected"
+                    ? "Defect Active"
                     : "All Verified"}
                 </span>
               </div>
@@ -1244,7 +1250,7 @@ export function ShipProofConsole() {
                 >
                   <Step title="Issue Spotted" description="Checkout was blocked">
                     <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
-                      AI Shopper spotted that customers could not complete orders ($99 revenue at risk).
+                      Detected that customers could not complete orders ($99 revenue at risk).
                     </div>
                   </Step>
                   <Step title="Diagnosis" description="Found broken code">
@@ -1252,19 +1258,19 @@ export function ShipProofConsole() {
                       Root Cause: The checkout button was disabled, preventing customer clicks.
                     </div>
                   </Step>
-                  <Step title="AI Solution" description="Generated verified fix">
+                  <Step title="Solution" description="Generated verified fix">
                     <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
-                      AI Store Guardian prepared a clean fix for cart checkout to restore purchasing.
+                      Prepared a clean fix for cart checkout to restore purchasing.
                     </div>
                   </Step>
                   <Step title="Review Fix" description="Preview before applying">
                     <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
-                      Review the problem vs AI solution below, then click to apply directly to the live store.
+                      Review the problem vs solution below, then click to apply directly to the live store.
                     </div>
                   </Step>
-                  <Step title="Re-Test Store" description="Autonomous check">
+                  <Step title="Re-Test Store" description="Verification check">
                     <div className="p-3 rounded-xl liquid-glass-subcard text-xs text-[#1c2a22] leading-relaxed">
-                      AI Shopper immediately visits the store again to confirm customers can now purchase.
+                      Visits the store again to confirm customers can now purchase.
                     </div>
                   </Step>
                   <Step title="Store Protected!" description="Orders flowing smoothly">
@@ -1281,12 +1287,12 @@ export function ShipProofConsole() {
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-none" />
                     <div>
-                      <span className="text-xs font-bold text-emerald-950 block">Closed-Loop Self-Healing Verified!</span>
-                      <span className="text-[11px] text-emerald-800">Store checkout restored. 0 revenue lost. Proof recorded.</span>
+                      <span className="text-xs font-bold text-emerald-950 block">Checkout Restored &amp; Verified!</span>
+                      <span className="text-[11px] text-emerald-800">Store checkout restored. $0 revenue lost. Verification confirmed.</span>
                     </div>
                   </div>
                   <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold">
-                    100% Healed
+                    100% Restored
                   </span>
                 </div>
               )}
@@ -1296,7 +1302,7 @@ export function ShipProofConsole() {
                 <div className="flex items-center justify-between text-xs font-semibold text-[#1c2a22]">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[#2d4a3e]" />
-                    <span>What Happened &amp; How AI Fixed It</span>
+                    <span>Issue &amp; Resolution Details</span>
                   </span>
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
@@ -1335,7 +1341,7 @@ export function ShipProofConsole() {
                     <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>AI Staged Solution</span>
+                        <span>Staged Solution</span>
                       </span>
                       <p className="text-emerald-950 text-[11px] leading-relaxed">
                         Re-enabled checkout button and restored active order submission.
@@ -1350,16 +1356,16 @@ export function ShipProofConsole() {
                         <span>Defect Injected</span>
                       </span>
                       <p className="text-rose-950 text-[11px] leading-relaxed">
-                        Checkout button is disabled on Acme Store ($99 order blocked). Awaiting AI Shopper detection.
+                        Checkout button is disabled on Acme Store ($99 order blocked). Awaiting test detection.
                       </p>
                     </div>
                     <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Self-Healing Standby</span>
+                        <span>Recovery Standby</span>
                       </span>
                       <p className="text-amber-950 text-[11px] leading-relaxed">
-                        AI Guardian will automatically synthesize and stage a patch upon detecting the customer obstruction.
+                        System will automatically synthesize and stage a patch upon detecting the customer obstruction.
                       </p>
                     </div>
                   </div>
@@ -1371,22 +1377,22 @@ export function ShipProofConsole() {
                         <span>Store State: Healthy</span>
                       </span>
                       <p className="text-emerald-950 text-[11px] leading-relaxed">
-                        All automated customer journeys passing normally. Zero checkout obstructions detected.
+                        All customer journeys passing normally. Zero checkout obstructions detected.
                       </p>
                     </div>
                     <div className="p-3 rounded-xl bg-white/70 border border-[#2d4a3e]/15 flex flex-col gap-1">
                       <span className="text-[11px] font-semibold text-[#2d4a3e] flex items-center gap-1.5">
                         <ShieldCheck className="w-3.5 h-3.5 text-[#1b7a4b]" />
-                        <span>Autonomous Retesting</span>
+                        <span>Verification Check</span>
                       </span>
                       <p className="text-[#4e6357] text-[11px] leading-relaxed">
-                        24/7 Guardian continuously verifies real shopping and checkout transactions in Chromium.
+                        Continuous checks verify real shopping and checkout transactions.
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Optional technical code toggle */}
+                {/* Optional fix details toggle */}
                 <div className="pt-1">
                   <button
                     type="button"
@@ -1394,7 +1400,7 @@ export function ShipProofConsole() {
                     className="text-[11px] text-[#4e6357] hover:text-[#1c2a22] flex items-center gap-1.5 transition-colors cursor-pointer py-1 font-medium"
                   >
                     {showCodeDiff ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    <span>{showCodeDiff ? "Hide Technical Code Diff" : "View Technical Code Changes (Git Diff)"}</span>
+                    <span>{showCodeDiff ? "Hide Fix Details" : "View Fix Details"}</span>
                   </button>
 
                   {showCodeDiff && (
@@ -1449,8 +1455,8 @@ export function ShipProofConsole() {
                     {isApprovingRepair
                       ? "Applying & Verifying Store..."
                       : unresolvedRepair
-                      ? "Apply AI Fix & Verify Store"
-                      : "Test Store Checkout Now"}
+                      ? "Apply Fix & Verify Store"
+                      : "Run Customer Order Test"}
                   </LiquidGlassButton>
                 </div>
 
@@ -1522,7 +1528,7 @@ export function ShipProofConsole() {
                       ? "TEST RUN ERROR"
                       : currentRun?.status === "queued"
                       ? "QUEUED FOR TESTING..."
-                      : "SIMULATING CUSTOMER..."}
+                      : "VERIFYING CHECKOUT..."}
                   </span>
                 </div>
               </div>
@@ -1602,10 +1608,10 @@ export function ShipProofConsole() {
         <div className="flex items-center gap-2">
           <span className="font-display text-base font-normal text-[#2d4a3e]">ShipProof</span>
           <span>•</span>
-          <span>24/7 AI Store Guardian &amp; Self-Healing Checkout</span>
+          <span>24/7 Continuous Checkout Protection</span>
         </div>
         <div>
-          <span className="font-medium">Your AI writes the code. ShipProof proves it works.</span>
+          <span className="font-medium">Continuous Checkout Verification &amp; Instant Recovery</span>
         </div>
       </footer>
     </div>

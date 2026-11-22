@@ -1,0 +1,30 @@
+{
+  "session_id": "2cbb1ae8-e975-4eb6-93db-bc2485703933",
+  "started_at": "2026-11-20T22:01:52.629Z",
+  "ended_at": "2026-11-20T22:02:57.353Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "failed",
+  "total_runs": 1,
+  "test_id": "7a4e8d08-0905-4303-81bf-e6b0f7a44d88",
+  "testcase_id": "01M7XFNX838Y2NF9A2152R2ZPA",
+  "commit_id": "2cbb1ae8-e975-4eb6-93db-bc2485703933",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed.",
+      "status": "failed",
+      "summary": "The store accepts adding the item and opens the cart, but the cart incorrectly keeps its checkout action disabled.\nFix the cart state so Proceed to Checkout becomes available when the cart contains an added item, then verify that it opens the Secure Checkout page.\nevidence: objective_contradiction: The cart's Proceed to Checkout button is disabled and the page states it is disabled by defect.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/2cbb1ae8-e975-4eb6-93db-bc2485703933/runs/0"
+    }
+  ],
+  "credits_consumed": 13.7743825
+}

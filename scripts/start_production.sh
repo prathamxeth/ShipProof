@@ -5,6 +5,14 @@ echo "=== Starting ShipProof Unified Production Environment on Render ==="
 
 export PYTHONPATH="${PYTHONPATH:-/app}"
 
+# Setup Kane CLI credentials if available
+if [ -d "/app/docker/kaneai" ]; then
+  mkdir -p /root/.testmuai/kaneai "$HOME/.testmuai/kaneai" 2>/dev/null || true
+  cp -rf /app/docker/kaneai/* /root/.testmuai/kaneai/ 2>/dev/null || true
+  cp -rf /app/docker/kaneai/* "$HOME/.testmuai/kaneai/" 2>/dev/null || true
+  chmod -R 700 /root/.testmuai "$HOME/.testmuai" 2>/dev/null || true
+fi
+
 # 1. Start Acme Voyager Storefront on internal port 3005
 echo "Launching Acme Voyager Storefront on port 3005..."
 python3 -m uvicorn demo_targets.sample_store.app:app --host 0.0.0.0 --port 3005 2>&1 | tee -a /tmp/store.log &

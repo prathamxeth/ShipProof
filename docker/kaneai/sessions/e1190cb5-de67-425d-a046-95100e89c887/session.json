@@ -1,0 +1,30 @@
+{
+  "session_id": "e1190cb5-de67-425d-a046-95100e89c887",
+  "started_at": "2026-11-15T21:24:41.704Z",
+  "ended_at": "2026-11-15T21:26:15.548Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "743adc18-4de3-4f2b-b1f0-ce4f2604a7b9",
+  "testcase_id": "01M7GHJ7KM5MRYFH3Q6TT141MA",
+  "commit_id": "e1190cb5-de67-425d-a046-95100e89c887",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Verify ShipProof homepage loads with heading ShipProof, click on Verification Runs and assert runs are listed, click on Repair Studio, click on Projects, and click on Settings",
+      "status": "passed",
+      "summary": "Opened ShipProof, where the ShipProof heading was displayed.\nOpened Verification Runs and confirmed that verification runs were listed.\nNavigated to Repair Studio, then Projects, and finally Settings.\nCompleted the requested navigation and ended on the Settings page.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/e1190cb5-de67-425d-a046-95100e89c887/runs/0"
+    }
+  ],
+  "credits_consumed": 29.3686
+}

@@ -1,0 +1,30 @@
+{
+  "session_id": "bc1e8e0c-bb14-4a4d-a64d-f545c8de0881",
+  "started_at": "2026-11-15T20:31:41.778Z",
+  "ended_at": "2026-11-15T20:32:12.147Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "8550911e-d535-42d0-9f5e-b97e9f5bce8f",
+  "testcase_id": "01M7GEH66JFA2BTKKE70M6RVBE",
+  "commit_id": "bc1e8e0c-bb14-4a4d-a64d-f545c8de0881",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Verify that the page title contains 'ShipProof Tech Store'",
+      "status": "passed",
+      "summary": "Verified that the ShipProof Tech Store catalog page loaded successfully.\nConfirmed that the page title was “ShipProof Tech Store — Catalog,” matching the requested store name.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/bc1e8e0c-bb14-4a4d-a64d-f545c8de0881/runs/0"
+    }
+  ],
+  "credits_consumed": 11.487874999999999
+}

@@ -1,0 +1,11 @@
+{
+  "session_id": "ae510a4a-9515-4346-bca7-ec1eeef3deb1",
+  "started_at": "2026-11-20T02:14:48.690Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": null,
+  "objectives": [],
+  "runs": [],
+  "status": "in_progress"
+}

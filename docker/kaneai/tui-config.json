@@ -1,0 +1,33 @@
+{
+  "window_size": {
+    "width": 1920,
+    "height": 1080
+  },
+  "chrome_profile_path": "",
+  "default_url": "https://kaneai-playground.lambdatest.io",
+  "model": "v16-alpha",
+  "project_id": "01M7GC6E98XJZNYK6BXP4081M5",
+  "project_name": "ShipProof",
+  "folder_id": "01M7GC6TC8RW51YNSMBH6WCQY9",
+  "folder_name": "ASUR",
+  "mode": "testing",
+  "assertion_mode": "dom",
+  "network_ws": false,
+  "network_sse": false,
+  "bug_detection": "off",
+  "assertion_failure_mode": "stop",
+  "final_validation": false,
+  "code_export": {
+    "enabled": true,
+    "language": "python",
+    "skip_validation": true
+  },
+  "generate": {
+    "scenario_limit": 2,
+    "per_scenario_limit": 3,
+    "memory_enabled": false
+  },
+  "last_seen_version": "0.10.4",
+  "hints_enabled": true,
+  "target": "desktop"
+}

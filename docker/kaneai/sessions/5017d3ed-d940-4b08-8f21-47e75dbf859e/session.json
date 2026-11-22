@@ -1,0 +1,30 @@
+{
+  "session_id": "5017d3ed-d940-4b08-8f21-47e75dbf859e",
+  "started_at": "2026-11-15T20:56:29.900Z",
+  "ended_at": "2026-11-15T20:57:12.319Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "failed",
+  "total_runs": 1,
+  "test_id": "ec068e14-107f-4299-813e-8b0ea242d51e",
+  "testcase_id": "01M7GFYKEEB5APWQ3JVWK9NCK2",
+  "commit_id": "5017d3ed-d940-4b08-8f21-47e75dbf859e",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed.",
+      "status": "failed",
+      "summary": "The store accepts the add-to-cart action but leaves checkout unavailable, preventing a customer with an item in the cart from continuing.\nFix the cart state after a successful add so that Proceed to Checkout is enabled when the cart contains the added item, then verify it opens Secure Checkout.\nevidence: error_ui_text: The cart's Proceed to Checkout button is disabled and displays a defect error.\nevidence: objective_contradiction: POST http://127.0.0.1:3005/cart/add -> 303\nevidence: objective_contradiction: GET http://127.0.0.1:3005/cart -> 200",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/5017d3ed-d940-4b08-8f21-47e75dbf859e/runs/0"
+    }
+  ],
+  "credits_consumed": 7.644950000000001
+}

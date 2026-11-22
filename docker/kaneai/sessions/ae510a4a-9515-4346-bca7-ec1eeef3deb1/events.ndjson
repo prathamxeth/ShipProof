@@ -1,0 +1,3 @@
+{"type":"stream_start","cli_version":"0.10.4","surface":"run","pid":27924,"v":1,"ts":"2026-11-20T02:14:42.138Z"}
+{"type":"recording_state","enabled":true,"session_id":"ae510a4a-9515-4346-bca7-ec1eeef3deb1","persist":false,"v":1,"ts":"2026-11-20T02:14:42.146Z"}
+{"type":"update_available","current":"0.10.4","latest":"0.10.6","severity":"patch","v":1,"ts":"2026-11-20T02:14:49.902Z"}

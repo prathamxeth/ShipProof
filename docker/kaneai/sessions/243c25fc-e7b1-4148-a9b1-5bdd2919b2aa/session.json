@@ -1,0 +1,30 @@
+{
+  "session_id": "243c25fc-e7b1-4148-a9b1-5bdd2919b2aa",
+  "started_at": "2026-11-16T18:09:56.808Z",
+  "ended_at": "2026-11-16T18:10:35.899Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "29235bc5-ca27-410a-884b-c5c0f0d7562d",
+  "testcase_id": "01M7JRTBK5F8S9S74KMC79XBKE",
+  "commit_id": "243c25fc-e7b1-4148-a9b1-5bdd2919b2aa",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Verify page loaded",
+      "status": "passed",
+      "summary": "The requested page-load check was completed.\nThe Example Domain page loaded successfully and its content was visible.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/243c25fc-e7b1-4148-a9b1-5bdd2919b2aa/runs/0"
+    }
+  ],
+  "credits_consumed": 5.932659999999999
+}

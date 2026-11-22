@@ -1,0 +1,30 @@
+{
+  "session_id": "53cd46f1-1eb4-43ba-a22c-3a23962cef77",
+  "started_at": "2026-11-15T21:23:32.778Z",
+  "ended_at": "2026-11-15T21:24:08.297Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "passed",
+  "total_runs": 1,
+  "test_id": "e733e57d-58d9-4317-9d6c-bdfd1ba7bce6",
+  "testcase_id": "01M7GHG49X5STH5JKES1MXA4VJ",
+  "commit_id": "53cd46f1-1eb4-43ba-a22c-3a23962cef77",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Verify store homepage loads",
+      "status": "passed",
+      "summary": "The requested store homepage was opened.\nThe main catalog content loaded successfully, including the “Featured Tech Gear” section.\nThe store homepage is available at the final page.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/53cd46f1-1eb4-43ba-a22c-3a23962cef77/runs/0"
+    }
+  ],
+  "credits_consumed": 13.674687500000001
+}

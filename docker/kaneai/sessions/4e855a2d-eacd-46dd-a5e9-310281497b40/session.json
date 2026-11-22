@@ -1,0 +1,30 @@
+{
+  "session_id": "4e855a2d-eacd-46dd-a5e9-310281497b40",
+  "started_at": "2026-11-15T20:37:11.523Z",
+  "ended_at": "2026-11-15T20:38:07.192Z",
+  "model": "v16-alpha",
+  "environment": "prod",
+  "profile": "Pratham",
+  "plan": "free",
+  "status": "complete",
+  "outcome": "failed",
+  "total_runs": 1,
+  "test_id": "accbda5d-d81e-4354-9829-640239838d9a",
+  "testcase_id": "01M7GEV87MCH7HVZ0J8QGPF8RM",
+  "commit_id": "4e855a2d-eacd-46dd-a5e9-310281497b40",
+  "project_id": null,
+  "upload_status": "pending",
+  "upload_attempts": 0,
+  "last_upload_attempt": null,
+  "upload_error": null,
+  "runs": [
+    {
+      "index": 0,
+      "objective": "Click 'Add to Cart', then in the cart click 'Proceed to Checkout', and verify that 'Secure Checkout' is displayed.",
+      "status": "failed",
+      "summary": "The agent took an extra Update action on the cart item before trying to check out. That action put this test run into the displayed disabled-checkout state, so the required checkout step could not be completed.\nRemove the cart-quantity update from this scenario. After Add to Cart opens the cart, click Proceed to Checkout and then check for Secure Checkout.",
+      "run_dir": "/Users/pratham/.testmuai/kaneai/sessions/4e855a2d-eacd-46dd-a5e9-310281497b40/runs/0"
+    }
+  ],
+  "credits_consumed": 15.510492499999998
+}

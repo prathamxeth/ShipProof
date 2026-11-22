@@ -10,11 +10,26 @@ from backend.app.core.database import get_db
 from backend.app.core.logging import get_logger
 from backend.app.models.schemas import HealthResponse
 
+import shutil
+from typing import Optional
+
 router = APIRouter(tags=["Health"])
 logger = get_logger("api.health")
 
 _last_auth_check_time = 0.0
 _last_auth_result = (False, "Not checked")
+
+def resolve_kane_path() -> Optional[str]:
+    configured = settings.KANE_CLI_PATH
+    if configured and os.path.exists(configured) and os.access(configured, os.X_OK):
+        return configured
+    which_path = shutil.which("kane-cli")
+    if which_path and os.access(which_path, os.X_OK):
+        return which_path
+    for p in ["/usr/bin/kane-cli", "/usr/local/bin/kane-cli"]:
+        if os.path.exists(p) and os.access(p, os.X_OK):
+            return p
+    return None
 
 async def check_kane_auth() -> tuple[bool, str]:
     global _last_auth_check_time, _last_auth_result
@@ -22,14 +37,15 @@ async def check_kane_auth() -> tuple[bool, str]:
     if now - _last_auth_check_time < 60.0:
         return _last_auth_result
 
-    if not os.path.exists(settings.KANE_CLI_PATH) or not os.access(settings.KANE_CLI_PATH, os.X_OK):
+    kane_bin = resolve_kane_path()
+    if not kane_bin:
         _last_auth_result = (False, "Kane CLI binary not found or not executable")
         _last_auth_check_time = now
         return _last_auth_result
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            settings.KANE_CLI_PATH, "whoami",
+            kane_bin, "whoami",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -59,8 +75,9 @@ async def get_health(db: AsyncSession = Depends(get_db)):
         logger.error(f"Database health check failed: {e}")
         db_status = "unhealthy: database connectivity failed"
 
-    kane_installed = os.path.exists(settings.KANE_CLI_PATH)
-    kane_executable = kane_installed and os.access(settings.KANE_CLI_PATH, os.X_OK)
+    kane_bin = resolve_kane_path()
+    kane_installed = bool(kane_bin and os.path.exists(kane_bin))
+    kane_executable = bool(kane_bin and os.access(kane_bin, os.X_OK))
     kane_auth, kane_detail = await check_kane_auth()
 
     agy_installed = os.path.exists(settings.AGY_CLI_PATH)
