@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ExternalLink,
   RotateCcw,
@@ -29,6 +29,32 @@ export function LiveBrowserViewport({
   const [viewMode, setViewMode] = useState<"live" | "screenshot">("live");
   const [iframeKey, setIframeKey] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Resolve embeddable URL: if currentUrl is local (127.0.0.1:3005) and accessed publicly, route through /store
+  const { resolvedIframeUrl, resolvedExternalUrl, displayUrl, displayProtocol } = useMemo(() => {
+    const isLocalStore = currentUrl.includes(":3005") || currentUrl.includes("127.0.0.1") || currentUrl.includes("localhost");
+
+    if (typeof window !== "undefined") {
+      const isPublicHost = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+      if (isLocalStore) {
+        const storePath = "/store";
+        return {
+          resolvedIframeUrl: storePath,
+          resolvedExternalUrl: storePath,
+          displayUrl: isPublicHost ? `${window.location.host}/store` : "127.0.0.1:3005",
+          displayProtocol: isPublicHost ? "https://" : "http://",
+        };
+      }
+    }
+
+    const isHttps = currentUrl.startsWith("https://");
+    return {
+      resolvedIframeUrl: currentUrl,
+      resolvedExternalUrl: currentUrl,
+      displayUrl: currentUrl.replace(/^https?:\/\//, ""),
+      displayProtocol: isHttps ? "https://" : "http://",
+    };
+  }, [currentUrl]);
 
   // Default to screenshot view when a completed run has evidence screenshots
   useEffect(() => {
@@ -70,9 +96,9 @@ export function LiveBrowserViewport({
         {/* URL Address Omnibar — Clean Realistic Browser Address */}
         <div className="flex-1 min-w-0 max-w-xl mx-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 border border-[#2d4a3e]/15 text-[11px] font-mono text-[#1c2a22] shadow-[0_1px_3px_rgba(35,55,45,0.04)]">
           <Lock className="w-3 h-3 text-[#1b7a4b] flex-none" />
-          <span className="text-[#4e6357] select-none">http://</span>
+          <span className="text-[#4e6357] select-none">{displayProtocol}</span>
           <span className="text-[#1c2a22] font-semibold truncate">
-            {currentUrl.replace(/^https?:\/\//, "")}
+            {displayUrl}
           </span>
         </div>
 
@@ -110,7 +136,7 @@ export function LiveBrowserViewport({
 
           {/* Open Store directly in New Tab */}
           <a
-            href={currentUrl}
+            href={resolvedExternalUrl}
             target="_blank"
             rel="noopener noreferrer"
             title="Open real target store in a separate browser tab"
@@ -146,7 +172,7 @@ export function LiveBrowserViewport({
             {/* Live Interactive Storefront Viewport */}
             <iframe
               key={iframeKey}
-              src={currentUrl}
+              src={resolvedIframeUrl}
               title="ShipProof Acme Voyager Storefront"
               className="w-full h-full border-none bg-transparent"
               sandbox="allow-same-origin allow-scripts allow-forms"

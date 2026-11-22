@@ -787,7 +787,12 @@ export function ShipProofConsole() {
 
           {/* Store Target link */}
           <a
-            href={process.env.NEXT_PUBLIC_STORE_URL || (typeof window !== "undefined" && window.location.hostname.includes("trycloudflare.com") ? "https://recipients-enters-spots-midnight.trycloudflare.com" : "http://127.0.0.1:3005")}
+            href={
+              process.env.NEXT_PUBLIC_STORE_URL ||
+              (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+                ? "/store"
+                : "http://127.0.0.1:3005")
+            }
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/85 border border-[#2d4a3e]/15 text-[#2d4a3e] hover:bg-white text-[11px] font-semibold shadow-sm transition-all"
@@ -1480,7 +1485,7 @@ export function ShipProofConsole() {
                       {currentRun?.title || "Live Customer Journey"}
                     </h3>
                     <p className="text-[11px] text-[#4e6357] font-medium">
-                      Testing: Acme Store ({currentRun?.target_url || "http://127.0.0.1:3005"})
+                      Testing: Acme Store ({typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? `${window.location.host}/store` : (currentRun?.target_url || "http://127.0.0.1:3005")})
                     </p>
                   </div>
                 </div>
