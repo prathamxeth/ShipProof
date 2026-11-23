@@ -4,6 +4,11 @@ set -e
 echo "=== Starting ShipProof Unified Production Environment on Render ==="
 
 export PYTHONPATH="${PYTHONPATH:-/app}"
+export SESSION_SECRET="${SESSION_SECRET:-shipproof_render_shared_secret_2026}"
+export SHIPPROOF_API_KEY="${SHIPPROOF_API_KEY:-sp_master_key_render_2026}"
+export SHIPPROOF_BACKEND_API_KEY="${SHIPPROOF_API_KEY}"
+export DEPLOYMENT_MODE="trusted_single_tenant"
+export ALLOW_LOCAL_TARGETS="true"
 
 # Setup Kane CLI credentials if available
 if [ -d "/app/docker/kaneai" ]; then

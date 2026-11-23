@@ -431,7 +431,9 @@ export function ShipProofConsole() {
     if (!text.trim()) return;
     setIsCreating(true);
     showNotification(`Verifying customer journey (${detail.model?.name || "Shopper Verification"})...`, "info");
-    const defaultStoreUrl = process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005";
+    const defaultStoreUrl = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+      ? `${window.location.origin}/store`
+      : (process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005");
     try {
       const isUrl = text.startsWith("http://") || text.startsWith("https://");
       const targetUrl = isUrl ? text.trim() : defaultStoreUrl;
@@ -456,7 +458,9 @@ export function ShipProofConsole() {
 
   // 1-Click Quick Scenarios
   const launchScenario = async (type: string) => {
-    const defaultStoreUrl = process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005";
+    const defaultStoreUrl = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+      ? `${window.location.origin}/store`
+      : (process.env.NEXT_PUBLIC_STORE_URL || "http://127.0.0.1:3005");
     setIsCreating(true);
     try {
       if (type === "sentinel_checkout") {
@@ -763,10 +767,10 @@ export function ShipProofConsole() {
             <div className="flex items-center gap-2">
               <span className="font-display text-2xl font-normal tracking-tight text-[#2d4a3e]">ShipProof</span>
               <span className="text-[10px] uppercase font-sans px-2 py-0.5 rounded-full bg-[#2d4a3e]/10 border border-[#2d4a3e]/15 text-[#2d4a3e] font-semibold">
-                Store Guardian
+                Store Verification
               </span>
             </div>
-            <p className="text-[11px] text-[#4e6357]">Continuous Checkout Protection &amp; Instant Recovery</p>
+            <p className="text-[11px] text-[#4e6357]">Customer experience &amp; checkout verification</p>
           </div>
         </div>
 
@@ -988,7 +992,7 @@ export function ShipProofConsole() {
                 <Wrench className="w-3.5 h-3.5 text-[#2d4a3e]" />
                 <span className="font-semibold text-[#1c2a22]">Issues Auto-Fixed</span>
               </span>
-              <span className="text-[10px] font-sans text-[#2d4a3e] bg-[#2d4a3e]/8 px-2 py-0.5 rounded-full border border-[#2d4a3e]/15 font-semibold">Self-Healing</span>
+              <span className="text-[10px] font-sans text-[#2d4a3e] bg-[#2d4a3e]/8 px-2 py-0.5 rounded-full border border-[#2d4a3e]/15 font-semibold">Auto-Resolved</span>
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <Counter
@@ -1076,7 +1080,7 @@ export function ShipProofConsole() {
               onClick={() => launchScenario("defect_autoheal")}
             >
               <Bug className="w-3.5 h-3.5 text-[#d9383a]" />
-              <span>Simulate Defect → Auto Fix</span>
+              <span>Simulate Defect → Quick Fix</span>
             </LiquidGlassButton>
           </div>
         </div>
@@ -1096,7 +1100,7 @@ export function ShipProofConsole() {
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Store Guardian</h3>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Store Health &amp; Testing</h3>
                     <p className="text-[11px] text-[#4e6357]">Continuous customer shopping &amp; checkout monitoring</p>
                   </div>
                 </div>
@@ -1214,7 +1218,7 @@ export function ShipProofConsole() {
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Self-Healing Studio</h3>
+                    <h3 className="font-display text-xl font-normal text-[#2d4a3e] tracking-tight">Resolution Studio</h3>
                     <p className="text-[11px] text-[#4e6357]">Detects checkout errors and restores customer purchases</p>
                   </div>
                 </div>
@@ -1613,10 +1617,10 @@ export function ShipProofConsole() {
         <div className="flex items-center gap-2">
           <span className="font-display text-base font-normal text-[#2d4a3e]">ShipProof</span>
           <span>•</span>
-          <span>24/7 Continuous Checkout Protection</span>
+          <span>Customer Experience &amp; Checkout Assurance</span>
         </div>
         <div>
-          <span className="font-medium">Continuous Checkout Verification &amp; Instant Recovery</span>
+          <span className="font-medium">Instant Detection &amp; Automated Recovery</span>
         </div>
       </footer>
     </div>

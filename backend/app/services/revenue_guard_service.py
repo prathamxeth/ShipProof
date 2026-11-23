@@ -22,8 +22,7 @@ class RevenueGuardService:
         self.interval_seconds: int = 120  # Default 2 minutes (favorable balance)
         self.target_url: str = os.getenv("STORE_TARGET_URL", "http://127.0.0.1:3005")
         self.objective: str = (
-            "Click 'Add to Cart', in the cart click 'Proceed to Checkout', "
-            "and on the checkout page click 'Place Order Now'."
+            "Verify customer shopping journey: select item, add to bag, and complete checkout order."
         )
         self.last_probe_time: Optional[float] = None
         self.next_probe_time: Optional[float] = None
@@ -112,7 +111,7 @@ class RevenueGuardService:
             from sqlalchemy import select
 
             self.total_probes += 1
-            run_title = f"[Revenue Guard #{self.total_probes}] Secret Shopper Checkout Audit"
+            run_title = f"Customer Order Verification #{self.total_probes}"
 
             async with AsyncSessionLocal() as session:
                 run_entity = VerificationRunEntity(
@@ -139,7 +138,7 @@ class RevenueGuardService:
                 "title": run_title,
                 "initiated_by": initiated_by,
                 "target_url": self.target_url,
-                "message": f"Autonomous Secret Shopper dispatched via Kane CLI (Run #{run_id[:8]})."
+                "message": f"Customer order verification dispatched (Run #{run_id[:8]})."
             }
         except Exception as e:
             self._running_probe = False
