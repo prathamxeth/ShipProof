@@ -542,7 +542,6 @@ class KaneService:
                 is_defect = (
                     store_defect
                     or "checkout-btn-broken" in cart_html
-                    or "btn-disabled" in cart_html
                     or "checkout button disabled by defect" in cart_html.lower()
                 )
 
