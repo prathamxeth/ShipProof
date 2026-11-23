@@ -82,6 +82,10 @@ def validate_target_url(
         raise ShipProofException("A valid target_url must be provided", status_code=422)
 
     url_str = url_str.strip()
+    if url_str.startswith("/"):
+        import os
+        store_port = os.getenv("STORE_PORT", "3005")
+        url_str = f"http://127.0.0.1:{store_port}{url_str}"
 
     try:
         parts = urlsplit(url_str)
