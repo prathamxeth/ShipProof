@@ -97,7 +97,7 @@ class RevenueGuardService:
             return {
                 "status": "busy",
                 "run_id": self.last_run_id,
-                "message": "A Revenue Guard probe is already actively executing in Chromium."
+                "message": "A customer order verification is currently in progress."
             }
 
         self._running_probe = True

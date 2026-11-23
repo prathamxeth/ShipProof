@@ -518,7 +518,7 @@ export function ShipProofConsole() {
           activeRepair.status === "AWAITING_AGENT")
       ) {
         setRepairStep(5);
-        const res = await api.approveRepair(activeRepair.id, "Approved in ShipProof Store Guardian");
+        const res = await api.approveRepair(activeRepair.id, "Approved in ShipProof Store Verification");
         showNotification(`Store updated: ${res.message}`, "success");
         if (defectActive) {
           await api.toggleDefect(false).catch(() => {});
@@ -560,6 +560,12 @@ export function ShipProofConsole() {
         ? Math.max(0, Math.round((new Date(r.completed_at).getTime() - new Date(r.created_at).getTime()) / 1000))
         : null;
 
+      // Clean historical titles of any robotic / internal names
+      const displayTitle = r.title
+        .replace(/\[Revenue Guard #\d+\]\s*/i, "")
+        .replace(/Secret Shopper Checkout Audit/i, "Customer Order Verification")
+        .replace(/Revenue Guard Probe/i, "Store Verification");
+
       return {
         id: r.id,
         title: (
@@ -567,7 +573,7 @@ export function ShipProofConsole() {
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-mono text-[10px] text-[#4e6357]">#{shortId}</span>
               <span className={`text-xs font-semibold truncate ${isSelected ? "text-[#1c2a22]" : "text-[#2d4a3e]"}`}>
-                {r.title}
+                {displayTitle}
               </span>
             </div>
             <span

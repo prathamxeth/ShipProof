@@ -64,7 +64,7 @@ function LoginForm() {
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-white">ShipProof Demo</h1>
             <p className="text-xs text-zinc-300">
-              24/7 AI Customer Simulation &amp; Self-Healing Store Guardian
+              Continuous Customer Checkout Verification &amp; Instant Recovery
             </p>
           </div>
 

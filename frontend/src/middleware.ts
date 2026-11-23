@@ -8,7 +8,7 @@ function getSessionSecret(): string {
     process.env.SESSION_SECRET ||
     process.env.SHIPPROOF_BACKEND_API_KEY ||
     process.env.SHIPPROOF_API_KEY ||
-    "shipproof_dev_session_secret_do_not_use_in_prod_12345678"
+    "shipproof_render_shared_secret_2026"
   );
 }
 
